@@ -33,13 +33,22 @@ module.exports = {
             // Use code to get access and refresh tokens
             spotify.authorizationCodeGrant(code)
                 .then(data => {
+                    // Store tokens locally
+                    try {
+                        fs.writeFile('./credentials/sp-token.json', JSON.stringify(data.body), 'utf-8', err => {
+                            if (err) { console.log(err) }
+                        });
+                    } catch (e) {
+                        // TODO: Error handling
+                        throw(e);
+                    }
+
                     // Set the tokens on the API object to use it in later calls
                     spotify.setAccessToken(data.body['access_token']);
                     spotify.setRefreshToken(data.body['refresh_token']);
 
                     // Reflect ready state
                     module.exports.ready = true;
-
                     resolve(data.body);
                 }, reject);
         });

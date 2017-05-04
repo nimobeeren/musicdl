@@ -33,7 +33,20 @@ module.exports = {
             oauth2Client.getToken(code, (err, tokens) => {
                 // Now tokens contains an access_token and an optional refresh_token. Save them.
                 if (!err) {
+                    // Store tokens locally
+                    try {
+                        fs.writeFile('./credentials/yt-token.json', JSON.stringify(tokens), 'utf-8', err => {
+                            if (err) { console.log(err) }
+                        });
+                    } catch (e) {
+                        // TODO: Error handling
+                        throw(e);
+                    }
+
+                    // Set the tokens on the API object to use it in later calls
                     oauth2Client.setCredentials(tokens);
+
+                    // Reflect ready state
                     module.exports.ready = true;
                     resolve(tokens);
                 } else {
