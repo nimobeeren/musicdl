@@ -1,3 +1,5 @@
+// TODO: Find out when access token is automatically refreshed, and update local token
+
 let fs = require('fs'),
     google = require('googleapis'),
     key = require('./credentials/yt-key.json'),
@@ -20,16 +22,28 @@ google.options({
 
 let authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline', // 'online' (default) or 'offline' (gets refresh_token)
-    scope: scope
+    scope: scope,
+    prompt: 'consent' // makes sure we get a refresh_token every time
 });
 
 module.exports = {
     authUrl: authUrl,
     ready: false,
 
+    init: () => {
+        // Check if acceess or refresh tokens are present in local storage
+        if (token['access_token'] || token['refresh_token']) {
+            oauth2Client.setCredentials(token);
+            console.log("Retrieved YouTube tokens from local storage");
+            module.exports.ready = true;
+        } else {
+            console.log("YouTube token is unknown format or damaged");
+        }
+    },
+
     authorize: code => {
         return new Promise((resolve, reject) => {
-            // todo: promisify
+            // TODO: promisify
             oauth2Client.getToken(code, (err, tokens) => {
                 // Now tokens contains an access_token and an optional refresh_token. Save them.
                 if (!err) {

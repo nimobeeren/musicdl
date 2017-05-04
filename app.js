@@ -2,7 +2,7 @@ const routes = require('./routes');
 const spotify = require('./spotify');
 const youtube = require('./youtube');
 
-const interval = 10000;
+const interval = 5000;
 
 function transferPlaylist() {
     if (!spotify.ready || !youtube.ready) {
@@ -11,6 +11,7 @@ function transferPlaylist() {
     }
 
     spotify.list().then(tracks => {
+        console.log("Retrieved tracks from Spotify");
         tracks.forEach(track => {
             let query = track.artists[0].name + ' - ' + track.name;
             // console.log('Searching for: ' + query);
@@ -24,9 +25,11 @@ function transferPlaylist() {
         });
 
         spotify.remove(tracks).then(data => {
-            console.log('Removed tracks from Spotify');
-        });
+            console.log("Removed tracks from Spotify");
+        }, console.error);
     }, console.error);
 }
 
+spotify.init();
+youtube.init();
 setInterval(transferPlaylist, interval);
