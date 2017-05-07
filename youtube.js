@@ -1,9 +1,9 @@
 // TODO: Find out when access token is automatically refreshed, and update local token
 
-let fs = require('fs'),
-    google = require('googleapis'),
-    key = require('./credentials/yt-key.json'),
-    token = require('./credentials/yt-token.json');
+const fs = require('fs');
+const google = require('googleapis');
+const key = require('./credentials/yt-key.json');
+const token = require('./credentials/yt-token.json');
 
 let youtube = google.youtube('v3'),
     OAuth2 = google.auth.OAuth2,
@@ -11,6 +11,7 @@ let youtube = google.youtube('v3'),
     clientId = key.web.client_id,
     clientSecret = key.web.client_secret,
     redirectUri = 'http://localhost:8000/yt-auth',
+    // TODO: Use config file for playlist ID
     // playlistId = 'PLwLvzZrbay3VIIGzAhJsQ4LWeVLA7tysk'; // real
     playlistId = 'PLwLvzZrbay3WqC63k3JJ7WicerCzT4BQ2'; // test
 
@@ -29,17 +30,6 @@ let authUrl = oauth2Client.generateAuthUrl({
 module.exports = {
     authUrl: authUrl,
     ready: false,
-
-    init: () => {
-        // Check if acceess or refresh tokens are present in local storage
-        if (token['access_token'] || token['refresh_token']) {
-            oauth2Client.setCredentials(token);
-            console.log("Retrieved YouTube tokens from local storage");
-            module.exports.ready = true;
-        } else {
-            console.log("YouTube token is unknown format or damaged");
-        }
-    },
 
     authorize: code => {
         return new Promise((resolve, reject) => {
@@ -107,3 +97,12 @@ module.exports = {
         });
     }
 };
+
+// Retrieves tokens from local storage and uses them
+if (token['access_token'] || token['refresh_token']) {
+    oauth2Client.setCredentials(token);
+    console.log("Retrieved YouTube tokens from local storage");
+    module.exports.ready = true;
+} else {
+    console.log("YouTube token is unknown format or damaged");
+}

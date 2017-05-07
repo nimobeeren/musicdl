@@ -1,13 +1,14 @@
-let fs = require('fs'),
-    SpotifyWebApi = require('spotify-web-api-node'),
-    key = require('./credentials/sp-key.json'),
-    token = require('./credentials/sp-token.json');
+const fs = require('fs');
+const SpotifyWebApi = require('spotify-web-api-node');
+const key = require('./credentials/sp-key.json');
+const token = require('./credentials/sp-token.json');
 
 let scopes = ['playlist-modify-private'],
     clientId = key.client_id,
     clientSecret = key.client_secret,
     redirectUri = 'http://localhost:8000/sp-auth',
     state = 'authorizing',
+    // TODO: Use config file for playlist ID/username
     username = '1126761403',
     // playlistId = '61NKK2St0qfHv2QgGya1VX'; // real
     playlistId = '6ZN2ExnpPHiFwaqib4wf0P'; // test
@@ -23,17 +24,6 @@ let authUrl = spotify.createAuthorizeURL(scopes, state);
 module.exports = {
     authUrl: authUrl,
     ready: false,
-
-    init: () => {
-        if (token['access_token'] || token['refresh_token']) {
-            spotify.setAccessToken(token['access_token']);
-            spotify.setRefreshToken(token['refresh_token']);
-            module.exports.ready = true;
-            console.log("Retrieved Spotify tokens from local storage");
-        } else {
-            console.log("Spotify token is unknown format or damaged");
-        }
-    },
 
     /**
      * Authorizes the app
@@ -123,3 +113,13 @@ module.exports = {
         });
     }
 };
+
+// Retrieves tokens from local storage and uses them
+if (token['access_token'] || token['refresh_token']) {
+    spotify.setAccessToken(token['access_token']);
+    spotify.setRefreshToken(token['refresh_token']);
+    module.exports.ready = true;
+    console.log("Retrieved Spotify tokens from local storage");
+} else {
+    console.log("Spotify token is unknown format or damaged");
+}
