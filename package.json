@@ -11,6 +11,7 @@
   "dependencies": {
     "express": "^4.15.2",
     "googleapis": "^19.0.0",
+    "shelljs": "^0.7.7",
     "spotify-web-api-node": "^2.3.6",
     "ytdl-core": "^0.13.2"
   }

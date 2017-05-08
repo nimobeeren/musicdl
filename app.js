@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const ytdl = require('ytdl-core');
+const shell = require('shelljs');
 
 const routes = require('./routes');
 const spotify = require('./spotify');
@@ -61,12 +62,12 @@ function downloadVideo(url) {
     track.on('info', (info, fmt) => {
         console.log('Downloading', fmt.resolution, fmt.audioEncoding, fmt.audioBitrate);
     });
-    track.on('progress', (chunkLength, downloaded, total) => downloaded === total && console.log('Done'));
+    track.on('progress', (chunkLength, downloaded, total) => console.log(downloaded / total * 100 + '%'));
     track.on('end', () => console.log('Done'));
 }
 
 function extractAudio(filepath) {
-    // TODO: Extract audio
+    shell.exec('ffmpeg');
 }
 
 // setInterval(transferPlaylist, interval); // TODO: Make an event listener/emitter?
