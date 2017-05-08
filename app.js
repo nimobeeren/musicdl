@@ -77,8 +77,23 @@ function extractAudio(filepath, tags) {
     });
 }
 
+function getTags(videoTitle) {
+    let re = new RegExp('(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$');
+    let result = re.exec(videoTitle);
+    let tags = {
+        artist: result[1],
+        title: result[2],
+        genre: ""
+    };
+
+    // TODO: Get genre based on channel (needs video obj as parameter)
+
+    return tags;
+}
+
 // setInterval(transferPlaylist, interval); // TODO: Make an event listener/emitter?
 // downloadVideo('1nwgLz-_eOo');
-extractAudio('track.mp4', {artist: "Hello", title: "World", genre: ""}).then(data => {
+let tags = getTags("Oh shit wadup - It's dat boi");
+extractAudio('track.mp4', tags).then(data => {
     console.log('Done');
 }, console.error);
