@@ -1,9 +1,9 @@
 // TODO: Get IDs of YouTube playlist items
 // Download video
-// TODO: Extract audio
+// Extract audio
 // TODO: Get titles of YouTube playlist items
-// TODO: Get artist/title of tracks (regex)
-// TODO: Tag tracks
+// Get artist/title of tracks (regex)
+// Tag tracks
 
 const fs = require('fs');
 const ytdl = require('ytdl-core');
