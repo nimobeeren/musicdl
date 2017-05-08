@@ -4,6 +4,7 @@
 // TODO: Get titles of YouTube playlist items
 // Get artist/title of tracks (regex)
 // Tag tracks
+// TODO: Remove tracks from YouTube playlist
 
 const fs = require('fs');
 const ytdl = require('ytdl-core');
@@ -44,27 +45,30 @@ function transferPlaylist() {
     }, console.error);
 }
 
-// TODO: Promisify
+// TODO: Error handling
 function downloadVideo(url) {
-    let format = undefined;
-    ytdl.getInfo(url, (err, info) => {
-        info.formats.forEach(fmt => {
-            // TODO: Decide if we want the best audiobitrate format without video, or just the best audiobitrate overall
-            console.log(fmt.resolution, fmt.audioBitrate, fmt.audioEncoding);
-            if (fmt.audioEncoding === 'aac' && (!format || fmt.audioBitrate > format.audioBitrate)) {
-                format = fmt;
-                // console.log('New best', format.resolution, format.audioEncoding, format.audioBitrate);
-            }
+    return new Promise((resolve, reject) => {
+        let format = undefined;
+        // TODO: Promisify
+        ytdl.getInfo(url, (err, info) => {
+            info.formats.forEach(fmt => {
+                // TODO: Decide if we want the best audiobitrate format without video, or just the best audiobitrate overall
+                console.log(fmt.resolution, fmt.audioBitrate, fmt.audioEncoding);
+                if (fmt.audioEncoding === 'aac' && (!format || fmt.audioBitrate > format.audioBitrate)) {
+                    format = fmt;
+                    // console.log('New best', format.resolution, format.audioEncoding, format.audioBitrate);
+                }
+            });
         });
-    });
 
-    let track = ytdl(url, { format: format });
-    track.pipe(fs.createWriteStream('track.mp4'));
-    track.on('info', (info, fmt) => {
-        console.log('Downloading', fmt.resolution, fmt.audioEncoding, fmt.audioBitrate);
+        let track = ytdl(url, { format: format });
+        track.pipe(fs.createWriteStream('track.mp4'));
+        track.on('info', (info, fmt) => {
+            console.log('Downloading', fmt.resolution, fmt.audioEncoding, fmt.audioBitrate);
+        });
+        track.on('progress', (chunkLength, downloaded, total) => console.log(downloaded / total * 100 + '%'));
+        track.on('end', () => resolve());
     });
-    track.on('progress', (chunkLength, downloaded, total) => console.log(downloaded / total * 100 + '%'));
-    track.on('end', () => console.log('Done'));
 }
 
 function extractAudio(filepath, tags) {
