@@ -44,6 +44,7 @@ function transferPlaylist() {
     }, console.error);
 }
 
+// TODO: Promisify
 function downloadVideo(url) {
     let format = undefined;
     ytdl.getInfo(url, (err, info) => {
@@ -66,9 +67,18 @@ function downloadVideo(url) {
     track.on('end', () => console.log('Done'));
 }
 
-function extractAudio(filepath) {
-    shell.exec('ffmpeg');
+function extractAudio(filepath, tags) {
+    return new Promise((resolve, reject) => {
+        let filename = 'track.m4a'; // TODO: .m4a or .aac?
+        shell.exec(`ffmpeg -i ${filepath} -vn -acodec copy -metadata artist="${tags.artist}" -metadata title="${tags.title}" -metadata genre="${tags.genre}" ${filename}`,
+            {silent: true}, (code, stdout, stderr) => {
+            code === 0 ? resolve(stdout) : reject(stderr);
+        });
+    });
 }
 
 // setInterval(transferPlaylist, interval); // TODO: Make an event listener/emitter?
-downloadVideo('1nwgLz-_eOo');
+// downloadVideo('1nwgLz-_eOo');
+extractAudio('track.mp4', {artist: "Hello", title: "World", genre: ""}).then(data => {
+    console.log('Done');
+}, console.error);
