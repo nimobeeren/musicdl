@@ -64,9 +64,11 @@ function downloadPlaylist() {
                         // Extract audio, generate and apply tags
                         console.log("Finished " + track.snippet.title);
                         let tags = getTags(track.snippet.title);
+                        // TODO: Check for illegal characters in video title
                         extractAudio(track.snippet.resourceId.videoId + '.mp4', track.snippet.title + '.m4a', tags)
                             .then(data => {
                                 console.log('Extracted audio');
+                                fs.unlink(track.snippet.resourceId.videoId + '.mp4');
                             }, console.error);
                     }, console.error);
 
