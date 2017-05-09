@@ -35,7 +35,7 @@ function transferPlaylist() {
             youtube.search(query).then(result => {
                 let id = result.items[0].id.videoId;
                 youtube.add(id).then(data => {
-                    console.log("Added track to YouTube (id: " +  id + ")");
+                    console.log("Added track to YouTube (id: " + id + ")");
                 }, console.error);
             }, console.error);
         });
@@ -77,58 +77,54 @@ function downloadVideo(track) {
         let id = track.snippet.resourceId.videoId;
         let format = undefined;
 
-        // TODO: Promisify
         // Find the best format to download
-        ytdl.getInfo(id, (err, info) => {
+        ytdl.getInfo(id).then(info => {
             info.formats.forEach(fmt => {
-                // TODO: Decide if we want the best audiobitrate format without video, or just the best audiobitrate overall
-                console.log(fmt.resolution, fmt.audioBitrate, fmt.audioEncoding);
+                // TODO: prioritize non-video streams with the same bitrate
                 if (fmt.audioEncoding === 'aac' && (!format || fmt.audioBitrate > format.audioBitrate)) {
                     format = fmt;
-                    // console.log('New best', format.resolution, format.audioEncoding, format.audioBitrate);
                 }
             });
-        });
 
-        // Create downloader object
-        let downloader = ytdl(id, { format: format });
+            // Create downloader object
+            let downloader = ytdl(id, {format: format});
 
-        // Write downloaded video to disk
-        try {
-            downloader.pipe(fs.createWriteStream('track.mp4'));
-        } catch (err) {
-            reject(err);
-        }
-
-        // Print download info
-        downloader.on('info', (info, fmt) => {
-            console.log('Downloading', fmt.resolution, fmt.audioEncoding, fmt.audioBitrate);
-        });
-
-        // Print progress every so often
-        let lastProgress = 0;
-        downloader.on('progress', (chunkLength, downloaded, total) => {
-            let percent = downloaded / total * 100;
-            if (percent >= lastProgress + 10) {
-                console.log(percent + '%');
-                lastProgress = percent;
+            // Write downloaded video to disk
+            try {
+                downloader.pipe(fs.createWriteStream('track.mp4'));
+            } catch (err) {
+                reject(err);
             }
 
-        });
+            // Print download info
+            downloader.on('info', (info, fmt) => {
+                console.log('Format: ' + fmt.resolution + fmt.audioEncoding + fmt.audioBitrate);
+            });
 
-        // Resolve promise when download ends
-        downloader.on('end', resolve);
+            // Print progress every so often
+            let lastProgress = 0;
+            downloader.on('progress', (chunkLength, downloaded, total) => {
+                let percent = downloaded / total * 100;
+                if (percent >= lastProgress + 10) {
+                    console.log(percent + '%');
+                    lastProgress = percent;
+                }
+            });
+
+            // Resolve promise when download ends
+            downloader.on('end', resolve);
+        }, console.error);
     });
 }
 
 // TODO: Make tags param optional and support partial
 function extractAudio(filepath, tags) {
     return new Promise((resolve, reject) => {
-        let filename = 'track.m4a'; // TODO: .m4a or .aac?
+        let filename = 'track.m4a';
         shell.exec(`ffmpeg -i ${filepath} -vn -acodec copy -metadata artist="${tags.artist}" -metadata title="${tags.title}" -metadata genre="${tags.genre}" ${filename}`,
             {silent: true}, (code, stdout, stderr) => {
-            code === 0 ? resolve(stdout) : reject(stderr);
-        });
+                code === 0 ? resolve(stdout) : reject(stderr);
+            });
     });
 }
 
@@ -147,9 +143,12 @@ function getTags(videoTitle) {
 }
 
 // setInterval(transferPlaylist, interval); // TODO: Make an event listener/emitter?
-// downloadVideo('1nwgLz-_eOo');
-// let tags = getTags("Oh shit wadup - It's dat boi");
-// extractAudio('track.mp4', tags).then(data => {
-//     console.log('Done');
-// }, console.error);
-downloadPlaylist();
+downloadVideo({
+    snippet: {
+        resourceId: {
+            videoId: 'Bs7yv3G2bSo'
+        }
+    }
+}).then(data => {
+    extractAudio('track.mp4', {artist: '', title: '', genre: ''});
+}, console.error);
