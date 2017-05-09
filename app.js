@@ -48,12 +48,25 @@ function transferPlaylist() {
 
 // TODO: Parameterize playlist ID
 function downloadPlaylist() {
+    // Get YouTube playlist content
     youtube.list().then(data => {
+        console.log("Received YouTube playlist content");
         data.items.forEach(track => {
-            // downloadVideo(track).then(data => {
-            //
-            // });
-            youtube.remove(track).then(console.log, console.error);
+            // Download each track
+            console.log("Downloading " + track.snippet.title);
+            downloadVideo(track).then(data => {
+                // Extract audio, generate and apply tags
+                console.log("Finished " + track.snippet.title);
+                let tags = getTags(track.snippet.title);
+                extractAudio('track.mp4', tags).then(data => {
+                    console.log('Extracted audio');
+                }, console.error);
+            }, console.error);
+
+            // Clear the YouTube playlist
+            youtube.remove(track).then(data => {
+                console.log("Removed YouTube playlist item " + track.snippet.title);
+            }, console.error);
         });
     }, console.error);
 }
@@ -61,9 +74,11 @@ function downloadPlaylist() {
 // TODO: Error handling
 function downloadVideo(track) {
     return new Promise((resolve, reject) => {
-        let id = track.resourceId.videoId;
+        let id = track.snippet.resourceId.videoId;
         let format = undefined;
+
         // TODO: Promisify
+        // Find the best format to download
         ytdl.getInfo(id, (err, info) => {
             info.formats.forEach(fmt => {
                 // TODO: Decide if we want the best audiobitrate format without video, or just the best audiobitrate overall
@@ -75,16 +90,38 @@ function downloadVideo(track) {
             });
         });
 
-        let track = ytdl(id, { format: format });
-        track.pipe(fs.createWriteStream('track.mp4'));
-        track.on('info', (info, fmt) => {
+        // Create downloader object
+        let downloader = ytdl(id, { format: format });
+
+        // Write downloaded video to disk
+        try {
+            downloader.pipe(fs.createWriteStream('track.mp4'));
+        } catch (err) {
+            reject(err);
+        }
+
+        // Print download info
+        downloader.on('info', (info, fmt) => {
             console.log('Downloading', fmt.resolution, fmt.audioEncoding, fmt.audioBitrate);
         });
-        track.on('progress', (chunkLength, downloaded, total) => console.log(downloaded / total * 100 + '%'));
-        track.on('end', () => resolve());
+
+        // Print progress every so often
+        let lastProgress = 0;
+        downloader.on('progress', (chunkLength, downloaded, total) => {
+            let percent = downloaded / total * 100;
+            if (percent >= lastProgress + 10) {
+                console.log(percent + '%');
+                lastProgress = percent;
+            }
+
+        });
+
+        // Resolve promise when download ends
+        downloader.on('end', resolve);
     });
 }
 
+// TODO: Make tags param optional and support partial
 function extractAudio(filepath, tags) {
     return new Promise((resolve, reject) => {
         let filename = 'track.m4a'; // TODO: .m4a or .aac?
