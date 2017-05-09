@@ -62,11 +62,20 @@ module.exports = {
 
     search: query => {
         return new Promise((resolve, reject) => {
-            let result = youtube.search.list({
+            youtube.search.list({
                 part: 'snippet',
                 q: query,
                 type: 'video'
             }, (err, data) => err ? reject(err) : resolve(data))
+        });
+    },
+
+    list: () => {
+        return new Promise((resolve, reject) => {
+            youtube.playlistItems.list({
+                part: 'snippet',
+                playlistId: playlistId,
+            }, (err, data) => err ? reject(err) : resolve(data));
         });
     },
 
@@ -94,6 +103,12 @@ module.exports = {
                     }
                 }
             }, (err, data) => err ? reject(err) : resolve(data));
+        });
+    },
+
+    remove: track => {
+        return new Promise((resolve, reject) => {
+           youtube.playlistItems.delete({id: track.id}, (err, data) => err ? reject(err) : resolve(data));
         });
     }
 };

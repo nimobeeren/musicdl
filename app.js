@@ -16,6 +16,7 @@ const youtube = require('./youtube');
 
 const interval = 5000;
 
+// TODO: Parameterize playlist IDs
 function transferPlaylist() {
     if (!spotify.ready) {
         console.log("Spotify not ready");
@@ -45,12 +46,25 @@ function transferPlaylist() {
     }, console.error);
 }
 
+// TODO: Parameterize playlist ID
+function downloadPlaylist() {
+    youtube.list().then(data => {
+        data.items.forEach(track => {
+            // downloadVideo(track).then(data => {
+            //
+            // });
+            youtube.remove(track).then(console.log, console.error);
+        });
+    }, console.error);
+}
+
 // TODO: Error handling
-function downloadVideo(url) {
+function downloadVideo(track) {
     return new Promise((resolve, reject) => {
+        let id = track.resourceId.videoId;
         let format = undefined;
         // TODO: Promisify
-        ytdl.getInfo(url, (err, info) => {
+        ytdl.getInfo(id, (err, info) => {
             info.formats.forEach(fmt => {
                 // TODO: Decide if we want the best audiobitrate format without video, or just the best audiobitrate overall
                 console.log(fmt.resolution, fmt.audioBitrate, fmt.audioEncoding);
@@ -61,7 +75,7 @@ function downloadVideo(url) {
             });
         });
 
-        let track = ytdl(url, { format: format });
+        let track = ytdl(id, { format: format });
         track.pipe(fs.createWriteStream('track.mp4'));
         track.on('info', (info, fmt) => {
             console.log('Downloading', fmt.resolution, fmt.audioEncoding, fmt.audioBitrate);
@@ -97,7 +111,8 @@ function getTags(videoTitle) {
 
 // setInterval(transferPlaylist, interval); // TODO: Make an event listener/emitter?
 // downloadVideo('1nwgLz-_eOo');
-let tags = getTags("Oh shit wadup - It's dat boi");
-extractAudio('track.mp4', tags).then(data => {
-    console.log('Done');
-}, console.error);
+// let tags = getTags("Oh shit wadup - It's dat boi");
+// extractAudio('track.mp4', tags).then(data => {
+//     console.log('Done');
+// }, console.error);
+downloadPlaylist();
