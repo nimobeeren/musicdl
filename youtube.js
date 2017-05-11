@@ -10,10 +10,7 @@ let youtube = google.youtube('v3'),
     scope = 'https://www.googleapis.com/auth/youtube',
     clientId = key.web.client_id,
     clientSecret = key.web.client_secret,
-    redirectUri = 'http://localhost:8000/yt-auth',
-    // TODO: Use config file for playlist ID
-    // playlistId = 'PLwLvzZrbay3VIIGzAhJsQ4LWeVLA7tysk'; // real
-    playlistId = 'PLwLvzZrbay3WqC63k3JJ7WicerCzT4BQ2'; // test
+    redirectUri = 'http://localhost:8000/yt-auth';
 
 let oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 
@@ -70,16 +67,16 @@ module.exports = {
         });
     },
 
-    list: () => {
+    list: listId => {
         return new Promise((resolve, reject) => {
             youtube.playlistItems.list({
                 part: 'snippet',
-                playlistId: playlistId,
+                playlistId: listId,
             }, (err, data) => err ? reject(err) : resolve(data));
         });
     },
 
-    add: track => {
+    add: (track, listId) => {
         return new Promise((resolve, reject) => {
             let id;
             if (typeof track === 'string') {
@@ -95,7 +92,7 @@ module.exports = {
                 part: 'snippet',
                 resource: {
                     snippet: {
-                        playlistId: playlistId,
+                        playlistId: listId,
                         resourceId: {
                             kind: 'youtube#video',
                             videoId: id

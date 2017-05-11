@@ -7,11 +7,7 @@ let scopes = ['playlist-modify-private'],
     clientId = key.client_id,
     clientSecret = key.client_secret,
     redirectUri = 'http://localhost:8000/sp-auth',
-    state = 'authorizing',
-    // TODO: Use config file for playlist ID/username
-    username = '1126761403',
-    // playlistId = '61NKK2St0qfHv2QgGya1VX'; // real
-    playlistId = '6ZN2ExnpPHiFwaqib4wf0P'; // test
+    state = 'authorizing';
 
 let spotify = new SpotifyWebApi({
     clientId: clientId,
@@ -58,10 +54,10 @@ module.exports = {
     /**
      * Gets an array of tracks from the specified playlist
      */
-    list: () => {
+    list: (username, listId) => {
         return new Promise((resolve, reject) => {
             // Get the playlist content
-            spotify.getPlaylist(username, playlistId)
+            spotify.getPlaylist(username, listId)
                 .then(data => {
                     resolve(data.body.tracks.items.map(track => track.track));
                 }, err => {
@@ -80,7 +76,7 @@ module.exports = {
                                 throw(e);
                             }
 
-                            spotify.getPlaylist(username, playlistId)
+                            spotify.getPlaylist(username, listId)
                                 .then(data => {
                                     resolve(data.body.tracks.items.map(track => track.track));
                                 }, reject);
@@ -93,9 +89,9 @@ module.exports = {
      * Removes a set of tracks from the specified playlist
      * @param tracks
      */
-    remove: tracks => {
+    remove: (username, listId, tracks) => {
         return new Promise((resolve, reject) => {
-            spotify.removeTracksFromPlaylist(username, playlistId, tracks, {})
+            spotify.removeTracksFromPlaylist(username, listId, tracks, {})
                 .then(resolve, err => {
                     // If an error occurs, refresh the access token and retry
                     console.log("Access token expired, refreshing"); // TODO: Check if error is 'Unauthorized' or different
@@ -112,7 +108,7 @@ module.exports = {
                                 throw(e);
                             }
 
-                            spotify.removeTracksFromPlaylist(username, playlistId, tracks, {})
+                            spotify.removeTracksFromPlaylist(username, listId, tracks, {})
                                 .then(resolve, reject);
                         }, console.error);
                 });
