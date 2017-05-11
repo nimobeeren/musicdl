@@ -129,10 +129,9 @@ function downloadVideo(track) {
     });
 }
 
-// TODO: Make tags param optional and support partial
-function extractAudio(infile, outfile, tags) {
+function extractAudio(infile, outfile, tags = {}) {
     return new Promise((resolve, reject) => {
-        shell.exec(`ffmpeg -i ${infile} -vn -acodec copy -metadata artist="${tags.artist}" -metadata title="${tags.title}" -metadata genre="${tags.genre}" "${outfile}"`,
+        shell.exec(`ffmpeg -i ${infile} -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
             {silent: true}, (code, stdout, stderr) => {
                 code === 0 ? resolve(stdout) : reject(stderr);
             });
@@ -154,6 +153,7 @@ function getTags(videoTitle) {
 }
 
 // setInterval(transferPlaylist, interval); // TODO: Make an event listener/emitter?
+
 // downloadVideo({
 //     snippet: {
 //         resourceId: {
@@ -161,6 +161,6 @@ function getTags(videoTitle) {
 //         }
 //     }
 // }).then(data => {
-//     extractAudio('track.mp4', {artist: '', title: '', genre: ''});
+//     extractAudio('Bs7yv3G2bSo.mp4', 'track.m4a', {artist: 'wadup'});
 // }, console.error);
-downloadPlaylist();
+// downloadPlaylist();
