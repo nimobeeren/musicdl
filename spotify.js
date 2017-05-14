@@ -87,6 +87,8 @@ module.exports = {
 
     /**
      * Removes a set of tracks from the specified playlist
+     * @param username Spotify username
+     * @param listId Spotify playlist ID
      * @param tracks
      */
     remove: (username, listId, tracks) => {
@@ -103,9 +105,9 @@ module.exports = {
                                 fs.writeFile('./credentials/sp-token.json', JSON.stringify(token), 'utf-8', err => {
                                     err && console.error(err);
                                 });
-                            } catch (e) {
+                            } catch (err) {
                                 // TODO: Error handling
-                                throw(e);
+                                throw(err);
                             }
 
                             spotify.removeTracksFromPlaylist(username, listId, tracks, {})

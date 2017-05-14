@@ -48,10 +48,12 @@ function transferPlaylist(spListId, ytListId) {
                     }, console.error);
             });
 
-            spotify.remove(tracks)
+            spotify.remove(spUsername, spListId, tracks)
                 .then(data => {
                     console.log("Removed tracks from Spotify");
-                }, console.error);
+                }, err => {
+                    throw(err);
+                });
         }, console.error);
 }
 
@@ -164,8 +166,7 @@ function getTags(videoTitle) {
     let result = re.exec(videoTitle);
     let tags = {
         artist: result[1],
-        title: result[2],
-        genre: ""
+        title: result[2]
     };
 
     // TODO: Get genre based on channel (needs video obj as parameter)
@@ -173,17 +174,9 @@ function getTags(videoTitle) {
     return tags;
 }
 
-// setInterval(transferPlaylist, interval); // TODO: Make an event listener/emitter?
+function repeat() {
+    transferPlaylist(spListId, ytListId);
+    downloadPlaylist(ytListId);
+}
 
-// downloadVideo({
-//     snippet: {
-//         resourceId: {
-//             videoId: 'Bs7yv3G2bSo'
-//         }
-//     }
-// }).then(data => {
-//     extractAudio('Bs7yv3G2bSo.mp4', 'track.m4a', {artist: 'wadup'});
-// }, console.error);
-
-// downloadPlaylist(ytListId);
-transferPlaylist(spListId, ytListId);
+setInterval(repeat, interval); // TODO: Make an event listener/emitter?
