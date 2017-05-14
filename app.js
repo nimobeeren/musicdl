@@ -17,6 +17,8 @@ const spListId = '6ZN2ExnpPHiFwaqib4wf0P'; // test
 // const ytListId = 'PLwLvzZrbay3VIIGzAhJsQ4LWeVLA7tysk'; // real
 const ytListId = 'PLwLvzZrbay3WqC63k3JJ7WicerCzT4BQ2'; // test
 
+const outDir = '/home/pi/output';
+
 /**
  * Moves all tracks from a Spotify playlist to a YouTube playlist, using YouTube's search
  * @param spListId Spotify playlist ID
@@ -84,7 +86,7 @@ function downloadPlaylist(ytListId) {
                         console.log("Finished " + title);
                         let tags = getTags(title);
                         // TODO: Check for illegal characters in video title
-                        extractAudio(id + '.mp4', title + '.m4a', tags)
+                        extractAudio(id + '.mp4', `${outDir}/${title}.m4a`, tags)
                             .then(data => {
                                 console.log('Extracted audio');
                                 fs.unlink(id + '.mp4');
