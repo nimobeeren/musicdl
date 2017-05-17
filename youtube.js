@@ -37,7 +37,7 @@ module.exports = {
                     // Store tokens locally
                     try {
                         fs.writeFile('./credentials/yt-token.json', JSON.stringify(tokens), 'utf-8', err => {
-                            if (err) { console.log(err) }
+                            err && reject(err);
                         });
                     } catch (e) {
                         // TODO: Error handling

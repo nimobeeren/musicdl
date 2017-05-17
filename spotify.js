@@ -33,7 +33,7 @@ module.exports = {
                     // Store tokens locally
                     try {
                         fs.writeFile('./credentials/sp-token.json', JSON.stringify(data.body), 'utf-8', err => {
-                            err && console.error(err);
+                            err && reject(err);
                         });
                     } catch (e) {
                         // TODO: Error handling
@@ -61,26 +61,30 @@ module.exports = {
                 .then(data => {
                     resolve(data.body.tracks.items.map(track => track.track));
                 }, err => {
-                    // If an error occurs, refresh the access token and retry
-                    console.log("Spotify access token expired, refreshing"); // TODO: Check if error is 'Unauthorized' or different
-                    spotify.refreshAccessToken()
-                        .then(data => {
-                            token['access_token'] = data.body['access_token'];
-                            spotify.setAccessToken(token['access_token']);
-                            try {
-                                fs.writeFile('./credentials/sp-token.json', JSON.stringify(token), 'utf-8', err => {
-                                    err && console.error(err);
-                                });
-                            } catch (e) {
-                                // TODO: Error handling
-                                throw(e);
-                            }
+                    // If we are unauthorized, refresh the access token and retry
+                    if (err.statusCode === 401) {
+                        console.log("Spotify access token expired, refreshing");
+                        spotify.refreshAccessToken()
+                            .then(data => {
+                                token['access_token'] = data.body['access_token'];
+                                spotify.setAccessToken(token['access_token']);
+                                try {
+                                    fs.writeFile('./credentials/sp-token.json', JSON.stringify(token), 'utf-8', err => {
+                                        err && reject(err);
+                                    });
+                                } catch (e) {
+                                    // TODO: Error handling
+                                    throw(e);
+                                }
 
-                            spotify.getPlaylist(username, listId)
-                                .then(data => {
-                                    resolve(data.body.tracks.items.map(track => track.track));
-                                }, reject);
-                        }, console.error);
+                                spotify.getPlaylist(username, listId)
+                                    .then(data => {
+                                        resolve(data.body.tracks.items.map(track => track.track));
+                                    }, reject);
+                            }, reject);
+                    } else {
+                        reject(err)
+                    }
                 });
         });
     },
@@ -95,24 +99,28 @@ module.exports = {
         return new Promise((resolve, reject) => {
             spotify.removeTracksFromPlaylist(username, listId, tracks, {})
                 .then(resolve, err => {
-                    // If an error occurs, refresh the access token and retry
-                    console.log("Spotify access token expired, refreshing"); // TODO: Check if error is 'Unauthorized' or different
-                    spotify.refreshAccessToken()
-                        .then(data => {
-                            token['access_token'] = data.body['access_token'];
-                            spotify.setAccessToken(token['access_token']);
-                            try {
-                                fs.writeFile('./credentials/sp-token.json', JSON.stringify(token), 'utf-8', err => {
-                                    err && console.error(err);
-                                });
-                            } catch (err) {
-                                // TODO: Error handling
-                                throw(err);
-                            }
+                    // If we are unauthorized, refresh the access token and retry
+                    if (err.statusCode === 401) {
+                        console.log("Spotify access token expired, refreshing");
+                        spotify.refreshAccessToken()
+                            .then(data => {
+                                token['access_token'] = data.body['access_token'];
+                                spotify.setAccessToken(token['access_token']);
+                                try {
+                                    fs.writeFile('./credentials/sp-token.json', JSON.stringify(token), 'utf-8', err => {
+                                        err && reject(err);
+                                    });
+                                } catch (err) {
+                                    // TODO: Error handling
+                                    throw(err);
+                                }
 
-                            spotify.removeTracksFromPlaylist(username, listId, tracks, {})
-                                .then(resolve, reject);
-                        }, console.error);
+                                spotify.removeTracksFromPlaylist(username, listId, tracks, {})
+                                    .then(resolve, reject);
+                            }, reject);
+                    } else {
+                        reject(err);
+                    }
                 });
         });
     }
