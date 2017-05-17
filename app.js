@@ -17,7 +17,8 @@ const spListId = '6ZN2ExnpPHiFwaqib4wf0P'; // test
 // const ytListId = 'PLwLvzZrbay3VIIGzAhJsQ4LWeVLA7tysk'; // real
 const ytListId = 'PLwLvzZrbay3WqC63k3JJ7WicerCzT4BQ2'; // test
 
-const outDir = '/home/pi/output';
+// const outDir = '/home/pi/output';
+const outDir = 'C:/Users/Nimo/Desktop';
 
 /**
  * Moves all tracks from a Spotify playlist to a YouTube playlist, using YouTube's search
@@ -43,10 +44,11 @@ function transferPlaylist(spListId, ytListId) {
                 youtube.search(query)
                     .then(result => {
                         let id = result.items[0].id.videoId;
-                        youtube.add(id, ytListId)
-                            .then(data => {
-                                console.log("Added track to YouTube (id: " + id + ")");
-                            }, console.error);
+                        return youtube.add(id, ytListId);
+                    }, console.error)
+                    .then(data => {
+                        let id = data.snippet.resourceId.videoId;
+                        console.log("Added track to YouTube (id: " + id + ")");
                     }, console.error);
             });
 
@@ -86,11 +88,11 @@ function downloadPlaylist(ytListId) {
                         console.log("Finished " + title);
                         let tags = getTags(title);
                         // TODO: Check for illegal characters in video title
-                        extractAudio(id + '.mp4', `${outDir}/${title}.m4a`, tags)
-                            .then(data => {
-                                console.log('Extracted audio');
-                                fs.unlink(id + '.mp4');
-                            }, console.error);
+                        return extractAudio(id + '.mp4', `${outDir}/${title}.m4a`, tags);
+                    }, console.error)
+                    .then(data => {
+                        console.log('Extracted audio');
+                        fs.unlink(id + '.mp4');
                     }, console.error);
 
                 // Clear the YouTube playlist
@@ -181,4 +183,6 @@ function repeat() {
     downloadPlaylist(ytListId);
 }
 
-setInterval(repeat, interval); // TODO: Make an event listener/emitter?
+// setInterval(repeat, interval); // TODO: Make an event listener/emitter?
+downloadPlaylist(ytListId);
+return;
