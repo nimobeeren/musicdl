@@ -38,7 +38,12 @@ function transferPlaylist(spListId, ytListId) {
 
     spotify.list(spUsername, spListId)
         .then(tracks => {
-            console.log("Retrieved tracks from Spotify");
+            // Check if playlist is empty
+            if (tracks.length === 0) {
+                return;
+            }
+
+            console.log("Retrieved new tracks from Spotify");
             tracks.forEach(track => {
                 let query = track.artists[0].name + ' - ' + track.name;
                 youtube.search(query)
@@ -75,7 +80,12 @@ function downloadPlaylist(ytListId) {
     // Get YouTube playlist content
     youtube.list(ytListId)
         .then(data => {
-            console.log("Received YouTube playlist content");
+            // Check if playlist is empty
+            if (data.items.length === 0) {
+                return;
+            }
+
+            console.log("Received new tracks from YouTube");
             data.items.forEach(track => {
                 let title = track.snippet.title,            // YouTube video title
                     id = track.snippet.resourceId.videoId;  // YouTube video ID
@@ -183,6 +193,4 @@ function repeat() {
     downloadPlaylist(ytListId);
 }
 
-// setInterval(repeat, interval); // TODO: Make an event listener/emitter?
-downloadPlaylist(ytListId);
-return;
+setInterval(repeat, interval); // TODO: Make an event listener/emitter?

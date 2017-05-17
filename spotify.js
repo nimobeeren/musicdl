@@ -62,7 +62,7 @@ module.exports = {
                     resolve(data.body.tracks.items.map(track => track.track));
                 }, err => {
                     // If an error occurs, refresh the access token and retry
-                    console.log("Access token expired, refreshing"); // TODO: Check if error is 'Unauthorized' or different
+                    console.log("Spotify access token expired, refreshing"); // TODO: Check if error is 'Unauthorized' or different
                     spotify.refreshAccessToken()
                         .then(data => {
                             token['access_token'] = data.body['access_token'];
@@ -96,7 +96,7 @@ module.exports = {
             spotify.removeTracksFromPlaylist(username, listId, tracks, {})
                 .then(resolve, err => {
                     // If an error occurs, refresh the access token and retry
-                    console.log("Access token expired, refreshing"); // TODO: Check if error is 'Unauthorized' or different
+                    console.log("Spotify access token expired, refreshing"); // TODO: Check if error is 'Unauthorized' or different
                     spotify.refreshAccessToken()
                         .then(data => {
                             token['access_token'] = data.body['access_token'];
