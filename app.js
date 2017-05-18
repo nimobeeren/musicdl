@@ -30,7 +30,7 @@ function transferPlaylist(spListId, ytListId) {
         console.log("Spotify not ready");
     }
     if (!youtube.ready) {
-        console.log("YouTube not ready")
+        console.log("YouTube not ready");
     }
     if (!spotify.ready || !youtube.ready) {
         return;
@@ -96,8 +96,9 @@ function downloadPlaylist(ytListId) {
                     .then(data => {
                         // Extract audio, generate and apply tags
                         console.log("Finished " + title);
-                        let tags = getTags(title);
+                        let tags = getTags(track);
                         // TODO: Check for illegal characters in video title
+                        // TODO: Output to month-based subdirectory (optional)
                         return extractAudio(id + '.mp4', `${outDir}/${title}.m4a`, tags);
                     }, console.error)
                     .then(data => {
@@ -168,6 +169,7 @@ function downloadVideo(track) {
 
 function extractAudio(infile, outfile, tags = {}) {
     return new Promise((resolve, reject) => {
+        console.log(tags);
         shell.exec(`ffmpeg -i ${infile} -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
             {silent: true}, (code, stdout, stderr) => {
                 code === 0 ? resolve(stdout) : reject(stderr);
@@ -175,15 +177,22 @@ function extractAudio(infile, outfile, tags = {}) {
     });
 }
 
-function getTags(videoTitle) {
+function getTags(track) {
+    let title = track.snippet.title,
+        channel = track.snippet.channelTitle; // TODO: This gives the channel that added the video instead of uploader
+
     let re = new RegExp('(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$');
-    let result = re.exec(videoTitle);
+    let result = re.exec(title);
     let tags = {
         artist: result[1],
         title: result[2]
     };
 
-    // TODO: Get genre based on channel (needs video obj as parameter)
+    // TODO: Get channels and genres from config file
+    console.log("Channel:" + channel);
+    if (channel === "Liquicity") {
+        tags.genre = "Drum and Bass";
+    }
 
     return tags;
 }
