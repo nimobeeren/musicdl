@@ -7,6 +7,7 @@ const spotify = require('./spotify');
 const youtube = require('./youtube');
 
 const interval = 5000;
+const useFfmpeg = false;
 
 // TODO: Use config file for playlist ID/username
 // TODO: Attach these things to the module somehow
@@ -168,7 +169,11 @@ function downloadVideo(track) {
 
 function extractAudio(infile, outfile, tags = {}) {
     return new Promise((resolve, reject) => {
-        shell.exec(`ffmpeg -i ${infile} -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
+        let alias = 'avconv';
+        if (useFfmpeg) {
+            alias = 'ffmpeg'
+        }
+        shell.exec(`${alias} -i ${infile} -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
             {silent: true}, (code, stdout, stderr) => {
                 code === 0 ? resolve(stdout) : reject(stderr);
             });
