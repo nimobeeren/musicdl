@@ -103,9 +103,19 @@ module.exports = {
         });
     },
 
+    getChannel: track => {
+        return new Promise((resolve, reject) => {
+            let id = track.snippet.resourceId.videoId;
+            youtube.videos.list({
+                part: 'snippet',
+                id: id
+            }, (err, data) => err ? reject(err) : resolve(data));
+        });
+    },
+
     remove: track => {
         return new Promise((resolve, reject) => {
-           youtube.playlistItems.delete({id: track.id}, (err, data) => err ? reject(err) : resolve(data));
+            youtube.playlistItems.delete({id: track.id}, (err, data) => err ? reject(err) : resolve(data));
         });
     }
 };

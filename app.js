@@ -58,7 +58,7 @@ function transferPlaylist(spListId, ytListId) {
             });
 
             spotify.remove(spUsername, spListId, tracks)
-                .then(data => {
+                .then(() => {
                     console.log("Removed tracks from Spotify");
                 }, err => {
                     throw(err);
@@ -79,36 +79,37 @@ function transferPlaylist(spListId, ytListId) {
 function downloadPlaylist(ytListId) {
     // Get YouTube playlist content
     youtube.list(ytListId)
-        .then(data => {
+        .then(playlist => {
             // Check if playlist is empty
-            if (data.items.length === 0) {
+            if (playlist.items.length === 0) {
                 return;
             }
 
             console.log("Received new tracks from YouTube");
-            data.items.forEach(track => {
+            playlist.items.forEach(track => {
                 let title = track.snippet.title,            // YouTube video title
                     id = track.snippet.resourceId.videoId;  // YouTube video ID
 
                 // Download each track
                 console.log("Downloading " + title);
                 downloadVideo(track)
-                    .then(data => {
-                        // Extract audio, generate and apply tags
+                    .then(() => {
                         console.log("Finished " + title);
-                        let tags = getTags(track);
+                        return getTags(track);
+                    }, console.error)
+                    .then(tags => {
                         // TODO: Check for illegal characters in video title
                         // TODO: Output to month-based subdirectory (optional)
                         return extractAudio(id + '.mp4', `${outDir}/${title}.m4a`, tags);
                     }, console.error)
-                    .then(data => {
+                    .then(() => {
                         console.log('Extracted audio');
                         fs.unlink(id + '.mp4');
                     }, console.error);
 
                 // Clear the YouTube playlist
                 youtube.remove(track)
-                    .then(data => {
+                    .then(() => {
                         console.log("Removed YouTube playlist item " + title);
                     }, console.error);
             });
@@ -178,23 +179,26 @@ function extractAudio(infile, outfile, tags = {}) {
 }
 
 function getTags(track) {
-    let title = track.snippet.title,
-        channel = track.snippet.channelTitle; // TODO: This gives the channel that added the video instead of uploader
+    return new Promise((resolve, reject) => {
+        let title = track.snippet.title;
+        let tags = {};
 
-    let re = new RegExp('(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$');
-    let result = re.exec(title);
-    let tags = {
-        artist: result[1],
-        title: result[2]
-    };
+        let re = new RegExp('(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$');
+        let result = re.exec(title);
+        tags.artist = result[1];
+        tags.title = result[2];
 
-    // TODO: Get channels and genres from config file
-    console.log("Channel:" + channel);
-    if (channel === "Liquicity") {
-        tags.genre = "Drum and Bass";
-    }
-
-    return tags;
+        youtube.getChannel(track)
+            .then(data => {
+                // TODO: Get channels and genres from config file
+                let channel = data.items[0].snippet.channelTitle;
+                console.log("Channel:" + channel);
+                if (channel === "Liquicity") {
+                    tags.genre = "Drum and Bass";
+                }
+                resolve(tags);
+            }, reject);
+    });
 }
 
 function repeat() {
