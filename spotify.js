@@ -35,9 +35,9 @@ module.exports = {
                         fs.writeFile('./credentials/sp-token.json', JSON.stringify(data.body), 'utf-8', err => {
                             err && reject(err);
                         });
-                    } catch (e) {
+                    } catch (err) {
                         // TODO: Error handling
-                        throw(e);
+                        throw err;
                     }
 
                     // Set the tokens on the API object to use it in later calls
@@ -55,6 +55,7 @@ module.exports = {
      * Gets an array of tracks from the specified playlist
      */
     list: (username, listId) => {
+        // TODO: Handle 429 too many requests properly
         return new Promise((resolve, reject) => {
             // Get the playlist content
             spotify.getPlaylist(username, listId)
@@ -72,9 +73,9 @@ module.exports = {
                                     fs.writeFile('./credentials/sp-token.json', JSON.stringify(token), 'utf-8', err => {
                                         err && reject(err);
                                     });
-                                } catch (e) {
+                                } catch (err) {
                                     // TODO: Error handling
-                                    throw(e);
+                                    throw err;
                                 }
 
                                 spotify.getPlaylist(username, listId)
@@ -112,7 +113,7 @@ module.exports = {
                                     });
                                 } catch (err) {
                                     // TODO: Error handling
-                                    throw(err);
+                                    throw err;
                                 }
 
                                 spotify.removeTracksFromPlaylist(username, listId, tracks, {})

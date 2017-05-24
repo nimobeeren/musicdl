@@ -1,4 +1,5 @@
 const fs = require('fs');
+const ini = require('ini');
 const path = require('path');
 const shell = require('shelljs');
 const ytdl = require('ytdl-core');
@@ -6,22 +7,6 @@ const ytdl = require('ytdl-core');
 const routes = require('./routes');
 const spotify = require('./spotify');
 const youtube = require('./youtube');
-
-const interval = 5000;
-const useFfmpeg = true;
-const useSubdir = true;
-
-// TODO: Use config file for playlist ID/username
-// TODO: Attach these things to the module somehow
-const spUsername = '1126761403';
-// const spListId = '61NKK2St0qfHv2QgGya1VX'; // real
-const spListId = '6ZN2ExnpPHiFwaqib4wf0P'; // test
-
-// const ytListId = 'PLwLvzZrbay3VIIGzAhJsQ4LWeVLA7tysk'; // real
-const ytListId = 'PLwLvzZrbay3WqC63k3JJ7WicerCzT4BQ2'; // test
-
-// const outDir = '/home/pi/output';
-const outDir = 'C:/Users/Nimo/Desktop';
 
 /**
  * Moves all tracks from a Spotify playlist to a YouTube playlist, using YouTube's search
@@ -39,7 +24,7 @@ function transferPlaylist(spListId, ytListId) {
         return;
     }
 
-    spotify.list(spUsername, spListId)
+    spotify.list(config['general']['SpotifyUsername'], config['general']['SpotifyListID'])
         .then(tracks => {
             // Check if playlist is empty
             if (tracks.length === 0) {
@@ -60,7 +45,7 @@ function transferPlaylist(spListId, ytListId) {
                     }, console.error);
             });
 
-            spotify.remove(spUsername, spListId, tracks)
+            spotify.remove(config['general']['SpotifyUsername'], spListId, tracks)
                 .then(() => {
                     console.log("Removed tracks from Spotify");
                 }, err => {
@@ -104,11 +89,12 @@ function downloadPlaylist(ytListId) {
                         return getTags(track);
                     }, console.error)
                     .then(tags => {
-                        let finalPath = '';
+                        let outDir = config['general']['OutputDir'];
                         let subDir = '';
+                        let finalPath = '';
 
                         // Determine final output path
-                        if (useSubdir) {
+                        if (config['general']['UseMonthSubdir']) {
                             // Use a subdirectory in format YYYY-MM if requested
                             let date = new Date();
 
@@ -202,7 +188,7 @@ function downloadVideo(track, outfile) {
 function extractAudio(infile, outfile, tags = {}) {
     return new Promise((resolve, reject) => {
         let alias = 'avconv';
-        if (useFfmpeg) {
+        if (config['general']['UseFFMPEG']) {
             alias = 'ffmpeg'
         }
         shell.exec(`${alias} -i ${infile} -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
@@ -236,8 +222,12 @@ function getTags(track) {
 }
 
 function repeat() {
-    transferPlaylist(spListId, ytListId);
-    downloadPlaylist(ytListId);
+    transferPlaylist(config['general']['SpotifyListID'], config['general']['YouTubeListID']);
+    downloadPlaylist(config['general']['YouTubeListID']);
 }
 
-setInterval(repeat, interval); // TODO: Make an event listener/emitter?
+// Load config file
+const config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'));
+
+// Check playlists repeatedly
+setInterval(repeat, 5000); // TODO: Make an event listener/emitter?
