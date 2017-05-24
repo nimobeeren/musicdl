@@ -191,7 +191,7 @@ function extractAudio(infile, outfile, tags = {}) {
         if (config['general']['UseFFMPEG']) {
             alias = 'ffmpeg'
         }
-        shell.exec(`${alias} -i ${infile} -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
+        shell.exec(`${alias} -i ${infile} -y -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
             {silent: true}, (code, stdout, stderr) => {
                 code === 0 ? resolve(stdout) : reject(stderr);
             });
@@ -227,7 +227,9 @@ function repeat() {
 }
 
 // Load config file
+// TODO: Check if config contains invalid values
 const config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'));
+console.log("Read config file");
 
 // Check playlists repeatedly
 setInterval(repeat, 5000); // TODO: Make an event listener/emitter?
