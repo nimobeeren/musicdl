@@ -1,13 +1,15 @@
 const fs = require('fs');
-const ytdl = require('ytdl-core');
+const path = require('path');
 const shell = require('shelljs');
+const ytdl = require('ytdl-core');
 
 const routes = require('./routes');
 const spotify = require('./spotify');
 const youtube = require('./youtube');
 
 const interval = 5000;
-const useFfmpeg = false;
+const useFfmpeg = true;
+const useSubdir = true;
 
 // TODO: Use config file for playlist ID/username
 // TODO: Attach these things to the module somehow
@@ -89,23 +91,50 @@ function downloadPlaylist(ytListId) {
             console.log("Received new tracks from YouTube");
             playlist.items.forEach(track => {
                 let title = track.snippet.title,            // YouTube video title
-                    id = track.snippet.resourceId.videoId;  // YouTube video ID
+                    id = track.snippet.resourceId.videoId,  // YouTube video ID
+                    videoFile = id + '.mp4',                // Filename for temporary video file
+                    // TODO: Check for illegal characters in video title
+                    audioFile = title + '.m4a';             // Filename for final audio file
 
                 // Download each track
                 console.log("Downloading " + title);
-                downloadVideo(track)
+                downloadVideo(track, videoFile)
                     .then(() => {
                         console.log("Finished " + title);
                         return getTags(track);
                     }, console.error)
                     .then(tags => {
-                        // TODO: Check for illegal characters in video title
-                        // TODO: Output to month-based subdirectory (optional)
-                        return extractAudio(id + '.mp4', `${outDir}/${title}.m4a`, tags);
+                        let finalPath = '';
+                        let subDir = '';
+
+                        // Determine final output path
+                        if (useSubdir) {
+                            // Use a subdirectory in format YYYY-MM if requested
+                            let date = new Date();
+
+                            if (date.getMonth() < 10) {
+                                subDir = date.getFullYear() + '-0' + date.getMonth();
+                            } else {
+                                subDir = date.getFullYear() + '-' + date.getMonth();
+                            }
+
+                            finalPath = path.join(outDir, subDir, audioFile);
+                        } else {
+                            finalPath = path.join(outDir, audioFile);
+                        }
+
+                        // Make sure the directory exists
+                        try {
+                            fs.mkdirSync(path.join(outDir, subDir));
+                        } catch (err) {
+                            if (err.code !== 'EEXIST') throw err;
+                        }
+
+                        return extractAudio(videoFile, finalPath, tags);
                     }, console.error)
                     .then(() => {
                         console.log('Extracted audio');
-                        fs.unlink(id + '.mp4');
+                        fs.unlink(videoFile);
                     }, console.error);
 
                 // Clear the YouTube playlist
@@ -120,9 +149,10 @@ function downloadPlaylist(ytListId) {
 /**
  * Downloads a YouTube video using the best audio format
  * @param track The track to download, must be playlistItem from YouTube Data API
+ * @param outfile The path to the output video file
  * @returns {Promise}
  */
-function downloadVideo(track) {
+function downloadVideo(track, outfile) {
     return new Promise((resolve, reject) => {
         let id = track.snippet.resourceId.videoId;
         let format = undefined;
@@ -143,7 +173,7 @@ function downloadVideo(track) {
 
                 // Write downloaded video to disk
                 try {
-                    downloader.pipe(fs.createWriteStream(id + '.mp4'));
+                    downloader.pipe(fs.createWriteStream(outfile));
                 } catch (err) {
                     reject(err);
                 }
