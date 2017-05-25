@@ -103,13 +103,13 @@ module.exports = {
         });
     },
 
-    getChannel: track => {
+    getChannelTitle: track => {
         return new Promise((resolve, reject) => {
             let id = track.snippet.resourceId.videoId;
             youtube.videos.list({
                 part: 'snippet',
                 id: id
-            }, (err, data) => err ? reject(err) : resolve(data));
+            }, (err, data) => err ? reject(err) : resolve(data.items[0].snippet.channelTitle));
         });
     },
 

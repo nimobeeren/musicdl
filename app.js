@@ -208,11 +208,9 @@ function getTags(track) {
         tags.artist = result[1];
         tags.title = result[2];
 
-        youtube.getChannel(track)
-            .then(data => {
+        youtube.getChannelTitle(track)
+            .then(channel => {
                 // TODO: Get channels and genres from config file
-                let channel = data.items[0].snippet.channelTitle;
-                console.log("Channel:" + channel);
                 if (channel === "Liquicity") {
                     tags.genre = "Drum and Bass";
                 }
