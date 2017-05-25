@@ -185,6 +185,14 @@ function downloadVideo(track, outfile) {
     });
 }
 
+/**
+ * Extracts audio from video file and optionally applies tags
+ * @param infile Path to input video file
+ * @param outfile Path to output audio file
+ * @param tags {Object} Object with artist, title and genre properties (all optional)
+ * to be applied to the file
+ * @returns {Promise}
+ */
 function extractAudio(infile, outfile, tags = {}) {
     return new Promise((resolve, reject) => {
         let alias = 'avconv';
@@ -198,21 +206,29 @@ function extractAudio(infile, outfile, tags = {}) {
     });
 }
 
+/**
+ * Generates tags for a YouTube track
+ * @param track YouTube video object
+ * @returns {Promise}
+ */
 function getTags(track) {
     return new Promise((resolve, reject) => {
-        let title = track.snippet.title;
+        let title = track.snippet.title; // video title
         let tags = {};
 
+        // Get artist and title using RegEx on video title
         let re = new RegExp('(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$');
         let result = re.exec(title);
         tags.artist = result[1];
         tags.title = result[2];
 
+        // Set genre if channel appears in config file
         youtube.getChannelTitle(track)
             .then(channel => {
-                // TODO: Get channels and genres from config file
-                if (channel === "Liquicity") {
-                    tags.genre = "Drum and Bass";
+                for (let ch in config.channels) {
+                    if (config.channels.hasOwnProperty(ch) && channel === ch) {
+                        tags.genre = config.channels[ch];
+                    }
                 }
                 resolve(tags);
             }, reject);
