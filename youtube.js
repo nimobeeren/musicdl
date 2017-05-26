@@ -30,7 +30,6 @@ module.exports = {
 
     authorize: code => {
         return new Promise((resolve, reject) => {
-            // TODO: promisify
             oauth2Client.getToken(code, (err, tokens) => {
                 // Now tokens contains an access_token and an optional refresh_token. Save them.
                 if (!err) {

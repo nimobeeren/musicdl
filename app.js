@@ -98,10 +98,10 @@ function downloadPlaylist(ytListId) {
                             // Use a subdirectory in format YYYY-MM if requested
                             let date = new Date();
 
-                            if (date.getMonth() < 10) {
-                                subDir = date.getFullYear() + '-0' + date.getMonth();
+                            if (date.getMonth() + 1 < 10) {
+                                subDir = date.getFullYear() + '-0' + (date.getMonth() + 1);
                             } else {
-                                subDir = date.getFullYear() + '-' + date.getMonth();
+                                subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
                             }
 
                             finalPath = path.join(outDir, subDir, audioFile);
@@ -241,7 +241,7 @@ function repeat() {
 }
 
 // Load config file
-// TODO: Check if config contains invalid values
+// TODO: Check if config contains invalid values (output dir exists?)
 const config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'));
 console.log("Read config file");
 

@@ -84,7 +84,7 @@ module.exports = {
                                     }, reject);
                             }, reject);
                     } else {
-                        reject(err)
+                        reject(err);
                     }
                 });
         });
