@@ -1,5 +1,6 @@
 const fs = require('fs');
 const ini = require('ini');
+const os = require('os');
 const path = require('path');
 const shell = require('shelljs');
 const ytdl = require('ytdl-core');
@@ -8,6 +9,7 @@ const routes = require('./routes');
 const spotify = require('./spotify');
 const youtube = require('./youtube');
 
+// Define config keys
 let outputDir, spUsername, spListId, ytListId, useMonthSubdir, useFfmpeg;
 
 /**
@@ -35,7 +37,7 @@ function transferPlaylist(spListId, ytListId) {
 
             console.log("Retrieved new tracks from Spotify");
             tracks.forEach(track => {
-                let query = track.artists[0].name + ' - ' + track.name;
+                const query = track.artists[0].name + ' - ' + track.name;
                 let id, title;
                 youtube.search(query)
                     .then(result => {
@@ -78,12 +80,11 @@ function downloadPlaylist(ytListId) {
 
             console.log("Retrieved new tracks from YouTube");
             playlist.items.forEach(track => {
-                let title = track.snippet.title,            // YouTube video title
-                    id = track.snippet.resourceId.videoId,  // YouTube video ID
-                    // TODO: Download video to temporary location such as /tmp
-                    videoFile = id + '.mp4',                // Filename for temporary video file
-                    // TODO: Check for illegal characters in video title
-                    audioFile = title + '.m4a';             // Filename for final audio file
+                // TODO: Check for illegal characters in video title
+                const title = track.snippet.title;                      // YouTube video title
+                const id = track.snippet.resourceId.videoId;            // YouTube video ID
+                const videoFile = path.join(os.tmpdir(), id + '.mp4');  // Filename for temporary video file
+                const audioFile = title + '.m4a';                       // Filename for final audio file
 
                 // Download each track
                 console.log("Downloading " + title);
@@ -99,7 +100,7 @@ function downloadPlaylist(ytListId) {
                         // Determine final output path
                         if (useMonthSubdir) {
                             // Use a subdirectory in format YYYY-MM if requested
-                            let date = new Date();
+                            const date = new Date();
 
                             if (date.getMonth() + 1 < 10) {
                                 subDir = date.getFullYear() + '-0' + (date.getMonth() + 1);
@@ -143,7 +144,7 @@ function downloadPlaylist(ytListId) {
  */
 function downloadVideo(track, outfile) {
     return new Promise((resolve, reject) => {
-        let id = track.snippet.resourceId.videoId;
+        const id = track.snippet.resourceId.videoId;
         let format = undefined;
 
         // Find the best format to download
@@ -158,7 +159,7 @@ function downloadVideo(track, outfile) {
                 });
 
                 // Create downloader object
-                let downloader = ytdl(id, {format: format});
+                const downloader = ytdl(id, {format: format});
 
                 // Write downloaded video to disk
                 try {
@@ -212,12 +213,12 @@ function extractAudio(infile, outfile, tags = {}) {
  */
 function getTags(track) {
     return new Promise((resolve, reject) => {
-        let title = track.snippet.title; // video title
+        const title = track.snippet.title; // video title
         let tags = {};
 
         // Get artist and title using RegEx on video title
         // TODO: Fix discarding of [.*]
-        let re = new RegExp(`(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$`);
+        const re = new RegExp(`(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$`);
         let result = re.exec(title);
         tags.artist = result[1].trim();
         tags.title = result[2].trim();
