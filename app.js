@@ -8,6 +8,8 @@ const routes = require('./routes');
 const spotify = require('./spotify');
 const youtube = require('./youtube');
 
+let outputDir, spUsername, spListId, ytListId, useMonthSubdir, useFfmpeg;
+
 /**
  * Moves all tracks from a Spotify playlist to a YouTube playlist, using YouTube's search
  * @param spListId Spotify playlist ID
@@ -24,7 +26,7 @@ function transferPlaylist(spListId, ytListId) {
         return;
     }
 
-    spotify.list(config['general']['SpotifyUsername'], config['general']['SpotifyListID'])
+    spotify.list(spUsername, spListId)
         .then(tracks => {
             // Check if playlist is empty
             if (tracks.length === 0) {
@@ -45,7 +47,7 @@ function transferPlaylist(spListId, ytListId) {
                     }, console.error);
             });
 
-            spotify.remove(config['general']['SpotifyUsername'], spListId, tracks)
+            spotify.remove(spUsername, spListId, tracks)
                 .then(() => {
                     console.log("Removed tracks from Spotify");
                 }, err => {
@@ -89,12 +91,11 @@ function downloadPlaylist(ytListId) {
                         return getTags(track);
                     }, console.error)
                     .then(tags => {
-                        let outDir = config['general']['OutputDir'];
                         let subDir = '';
                         let finalPath = '';
 
                         // Determine final output path
-                        if (config['general']['UseMonthSubdir']) {
+                        if (useMonthSubdir) {
                             // Use a subdirectory in format YYYY-MM if requested
                             let date = new Date();
 
@@ -104,14 +105,14 @@ function downloadPlaylist(ytListId) {
                                 subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
                             }
 
-                            finalPath = path.join(outDir, subDir, audioFile);
+                            finalPath = path.join(outputDir, subDir, audioFile);
                         } else {
-                            finalPath = path.join(outDir, audioFile);
+                            finalPath = path.join(outputDir, audioFile);
                         }
 
                         // Make sure the directory exists
                         try {
-                            fs.mkdirSync(path.join(outDir, subDir));
+                            fs.mkdirSync(path.join(outputDir, subDir));
                         } catch (err) {
                             if (err.code !== 'EEXIST') throw err;
                         }
@@ -196,7 +197,7 @@ function downloadVideo(track, outfile) {
 function extractAudio(infile, outfile, tags = {}) {
     return new Promise((resolve, reject) => {
         let alias = 'avconv';
-        if (config['general']['UseFFMPEG']) {
+        if (useFfmpeg) {
             alias = 'ffmpeg'
         }
         shell.exec(`${alias} -i ${infile} -y -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
@@ -217,17 +218,18 @@ function getTags(track) {
         let tags = {};
 
         // Get artist and title using RegEx on video title
-        let re = new RegExp('(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$');
+        // TODO: Fix discarding of [.*]
+        let re = new RegExp(`(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$`);
         let result = re.exec(title);
-        tags.artist = result[1];
-        tags.title = result[2];
+        tags.artist = result[1].trim();
+        tags.title = result[2].trim();
 
         // Set genre if channel appears in config file
         youtube.getChannelTitle(track)
             .then(channel => {
-                for (let ch in config.channels) {
-                    if (config.channels.hasOwnProperty(ch) && channel === ch) {
-                        tags.genre = config.channels[ch];
+                for (let ch in config.Channels) {
+                    if (config.Channels.hasOwnProperty(ch) && channel === ch) {
+                        tags.genre = config.Channels[ch];
                     }
                 }
                 resolve(tags);
@@ -236,13 +238,18 @@ function getTags(track) {
 }
 
 function repeat() {
-    transferPlaylist(config['general']['SpotifyListID'], config['general']['YouTubeListID']);
-    downloadPlaylist(config['general']['YouTubeListID']);
+    transferPlaylist(spListId, ytListId);
+    downloadPlaylist(ytListId);
 }
 
 // Load config file
-// TODO: Check if config contains invalid values (output dir exists?)
 const config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'));
+outputDir = config['General']['OutputDir'];
+spUsername = config['General']['SpotifyUsername'];
+spListId = config['General']['SpotifyListID'];
+ytListId = config['General']['YouTubeListID'];
+useMonthSubdir = config['General']['UseMonthSubdir'];
+useFfmpeg = config['General']['UseFFMPEG'];
 console.log("Read config file");
 
 // Check playlists repeatedly
