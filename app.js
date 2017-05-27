@@ -36,20 +36,21 @@ function transferPlaylist(spListId, ytListId) {
             console.log("Retrieved new tracks from Spotify");
             tracks.forEach(track => {
                 let query = track.artists[0].name + ' - ' + track.name;
+                let id, title;
                 youtube.search(query)
                     .then(result => {
-                        let id = result.items[0].id.videoId;
+                        id = result.items[0].id.videoId;
+                        title = result.items[0].snippet.title;
                         return youtube.add(id, ytListId);
                     }, console.error)
-                    .then(data => {
-                        let id = data.snippet.resourceId.videoId;
-                        console.log("Added track to YouTube (id: " + id + ")");
+                    .then(() => {
+                        console.log(`Added to YouTube: ${title} (${id})`);
                     }, console.error);
             });
 
             spotify.remove(spUsername, spListId, tracks)
                 .then(() => {
-                    console.log("Removed tracks from Spotify");
+                    // Do nothing
                 }, err => {
                     throw(err);
                 });
@@ -61,7 +62,7 @@ function transferPlaylist(spListId, ytListId) {
  * Downloads video
  * Extracts audio from video file
  * Gets titles of YouTube playlist items
- * Gets artist/title of tracks
+ * Gets artist/title using RegExp
  * Tags tracks
  * Removes tracks from YouTube playlist
  * @param ytListId YouTube playlist ID
@@ -75,10 +76,11 @@ function downloadPlaylist(ytListId) {
                 return;
             }
 
-            console.log("Received new tracks from YouTube");
+            console.log("Retrieved new tracks from YouTube");
             playlist.items.forEach(track => {
                 let title = track.snippet.title,            // YouTube video title
                     id = track.snippet.resourceId.videoId,  // YouTube video ID
+                    // TODO: Download video to temporary location such as /tmp
                     videoFile = id + '.mp4',                // Filename for temporary video file
                     // TODO: Check for illegal characters in video title
                     audioFile = title + '.m4a';             // Filename for final audio file
@@ -120,14 +122,14 @@ function downloadPlaylist(ytListId) {
                         return extractAudio(videoFile, finalPath, tags);
                     }, console.error)
                     .then(() => {
-                        console.log('Extracted audio');
+                        // Delete temporary video file
                         fs.unlink(videoFile);
                     }, console.error);
 
                 // Clear the YouTube playlist
                 youtube.remove(track)
                     .then(() => {
-                        console.log("Removed YouTube playlist item " + title);
+                        // Do nothing
                     }, console.error);
             });
         }, console.error);
@@ -165,20 +167,16 @@ function downloadVideo(track, outfile) {
                     reject(err);
                 }
 
-                // Print download info
-                downloader.on('info', (info, fmt) => {
-                    console.log('Format:', fmt.resolution, fmt.audioEncoding, fmt.audioBitrate);
-                });
-
+                // TODO: Communicate progress to web interface
                 // Print progress every so often
-                let lastProgress = 0;
-                downloader.on('progress', (chunkLength, downloaded, total) => {
-                    let percent = downloaded / total * 100;
-                    if (percent >= lastProgress + 10) {
-                        console.log(percent + '%');
-                        lastProgress = percent;
-                    }
-                });
+                // let lastProgress = 0;
+                // downloader.on('progress', (chunkLength, downloaded, total) => {
+                //     let percent = downloaded / total * 100;
+                //     if (percent >= lastProgress + 10) {
+                //         console.log(percent + '%');
+                //         lastProgress = percent;
+                //     }
+                // });
 
                 // Resolve promise when download ends
                 downloader.on('end', resolve);
