@@ -69,6 +69,7 @@ function transferPlaylist(spListId, ytListId) {
  * Removes tracks from YouTube playlist
  * @param ytListId YouTube playlist ID
  */
+// TODO: Fix operation not permitted when opening video file
 function downloadPlaylist(ytListId) {
     // Get YouTube playlist content
     youtube.list(ytListId)
@@ -79,12 +80,36 @@ function downloadPlaylist(ytListId) {
             }
 
             console.log("Retrieved new tracks from YouTube");
-            playlist.items.forEach(track => {
+            playlist.items.forEach((track, index) => {
                 // TODO: Check for illegal characters in video title
                 const title = track.snippet.title;                      // YouTube video title
                 const id = track.snippet.resourceId.videoId;            // YouTube video ID
                 const videoFile = path.join(os.tmpdir(), id + '.mp4');  // Filename for temporary video file
                 const audioFile = title + '.m4a';                       // Filename for final audio file
+
+                // Remove track from the YouTube playlist
+                youtube.remove(track)
+                    .then(() => {
+                        // Do nothing
+                    }, err => {
+                        // Ignore 404 errors
+                        if (err.code !== 404) console.error(err);
+                    });
+
+                // Make sure we don't download duplicates
+                // TODO: Test this
+                for (let i = 0; i < playlist.items.length; i++) {
+                    // Find first item in the list that has the same ID as this one
+                    if (id === playlist.items[i].snippet.resourceId.videoId) {
+                        if (index === i) {
+                            // If this item is the first one, continue as usual
+                            break;
+                        } else {
+                            // If this item is not the first one, don't process it
+                            return;
+                        }
+                    }
+                }
 
                 // Download each track
                 console.log("Downloading " + title);
@@ -125,12 +150,6 @@ function downloadPlaylist(ytListId) {
                     .then(() => {
                         // Delete temporary video file
                         fs.unlink(videoFile);
-                    }, console.error);
-
-                // Clear the YouTube playlist
-                youtube.remove(track)
-                    .then(() => {
-                        // Do nothing
                     }, console.error);
             });
         }, console.error);
