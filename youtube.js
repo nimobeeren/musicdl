@@ -38,9 +38,9 @@ module.exports = {
                         fs.writeFile('./credentials/yt-token.json', JSON.stringify(tokens), 'utf-8', err => {
                             err && reject(err);
                         });
-                    } catch (e) {
+                    } catch (err) {
                         // TODO: Error handling
-                        throw(e);
+                        throw(err);
                     }
 
                     // Set the tokens on the API object to use it in later calls

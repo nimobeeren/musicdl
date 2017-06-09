@@ -10,7 +10,7 @@ const spotify = require('./spotify');
 const youtube = require('./youtube');
 
 // Define config keys
-let outputDir, spUsername, spListId, ytListId, useMonthSubdir, useFfmpeg;
+let interval, outputDir, spUsername, spListId, ytListId, useMonthSubdir, useFfmpeg;
 
 /**
  * Moves all tracks from a Spotify playlist to a YouTube playlist, using YouTube's search
@@ -262,6 +262,7 @@ function repeat() {
 
 // Load config file
 const config = ini.parse(fs.readFileSync('./config.ini', 'utf-8'));
+interval = config['General']['Interval'] * 1000;
 outputDir = config['General']['OutputDir'];
 spUsername = config['General']['SpotifyUsername'];
 spListId = config['General']['SpotifyListID'];
@@ -271,4 +272,4 @@ useFfmpeg = config['General']['UseFFMPEG'];
 console.log("Read config file");
 
 // Check playlists repeatedly
-setInterval(repeat, 5000); // TODO: Make an event listener/emitter?
+setInterval(repeat, interval); // TODO: Make an event listener/emitter?
