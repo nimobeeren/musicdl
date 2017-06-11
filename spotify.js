@@ -64,7 +64,6 @@ module.exports = {
                 }, err => {
                     // If we are unauthorized, refresh the access token and retry
                     if (err.statusCode === 401) {
-                        console.log("Spotify access token expired, refreshing");
                         spotify.refreshAccessToken()
                             .then(data => {
                                 token['access_token'] = data.body['access_token'];
@@ -102,7 +101,6 @@ module.exports = {
                 .then(resolve, err => {
                     // If we are unauthorized, refresh the access token and retry
                     if (err.statusCode === 401) {
-                        console.log("Spotify access token expired, refreshing");
                         spotify.refreshAccessToken()
                             .then(data => {
                                 token['access_token'] = data.body['access_token'];

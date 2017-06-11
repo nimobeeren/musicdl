@@ -18,45 +18,61 @@ let interval, outputDir, spUsername, spListId, ytListId, useMonthSubdir, useFfmp
  * @param ytListId YouTube playlist ID
  */
 function transferPlaylist(spListId, ytListId) {
-    if (!spotify.ready) {
-        console.log("Spotify not ready");
-    }
-    if (!youtube.ready) {
-        console.log("YouTube not ready");
-    }
-    if (!spotify.ready || !youtube.ready) {
-        return;
-    }
+    return new Promise((resolve, reject) => {
+        if (!spotify.ready) {
+            console.log("Spotify not ready");
+        }
+        if (!youtube.ready) {
+            console.log("YouTube not ready");
+        }
+        if (!spotify.ready || !youtube.ready) {
+            // TODO: Test with throw new Error()
+            reject("Services not ready");
+            return;
+        }
 
-    spotify.list(spUsername, spListId)
-        .then(tracks => {
-            // Check if playlist is empty
-            if (tracks.length === 0) {
-                return;
-            }
+        spotify.list(spUsername, spListId)
+            .then(tracks => {
+                let processed = 0; // amount of tracks added to YouTube so far
+                let removed = false; // whether tracks have been removed from Spotify
 
-            console.log("Retrieved new tracks from Spotify");
-            tracks.forEach(track => {
-                const query = track.artists[0].name + ' - ' + track.name;
-                let id, title;
-                youtube.search(query)
-                    .then(result => {
-                        id = result.items[0].id.videoId;
-                        title = result.items[0].snippet.title;
-                        return youtube.add(id, ytListId);
-                    }, console.error)
-                    .then(() => {
-                        console.log(`Added to YouTube: ${title} (${id})`);
-                    }, console.error);
-            });
+                // Check if playlist is empty
+                if (tracks.length === 0) {
+                    // TODO: Test without resolve, just return
+                    resolve();
+                    return;
+                }
 
-            spotify.remove(spUsername, spListId, tracks)
-                .then(() => {
-                    // Do nothing
-                }, err => {
-                    throw(err);
+                console.log("Retrieved new tracks from Spotify");
+                tracks.forEach(track => {
+                    const query = track.artists[0].name + ' - ' + track.name;
+                    let id, title;
+                    youtube.search(query)
+                        .then(result => {
+                            id = result.items[0].id.videoId;
+                            title = result.items[0].snippet.title;
+                            return youtube.add(id, ytListId);
+                        }, err => {
+                            throw err;
+                        })
+                        .then(() => {
+                            // TODO: Don't do this if youtube.search fails
+                            // If all tracks have been added to YouTube and removed from Spotify, we're done
+                            console.log(`Added to YouTube: ${title} (${id})`);
+                            if (++processed === tracks.length && removed) resolve(tracks);
+                        }, reject);
                 });
-        }, console.error);
+
+                spotify.remove(spUsername, spListId, tracks)
+                    .then(() => {
+                        removed = true;
+                        if (processed === tracks.length) resolve(tracks);
+                    }, err => {
+                        // If removing fails, user intervention is required
+                        throw err;
+                    });
+            }, reject);
+    });
 }
 
 /**
@@ -71,88 +87,105 @@ function transferPlaylist(spListId, ytListId) {
  */
 // TODO: Fix operation not permitted when opening video file
 function downloadPlaylist(ytListId) {
-    // Get YouTube playlist content
-    youtube.list(ytListId)
-        .then(playlist => {
-            // Check if playlist is empty
-            if (playlist.items.length === 0) {
-                return;
-            }
+    return new Promise((resolve, reject) => {
+        // Get YouTube playlist content
+        youtube.list(ytListId)
+            .then(playlist => {
+                let processed = 0; // how many tracks have been processed so far (including duplicates)
+                let removed = false; // whether tracks have been removed from YouTube
 
-            console.log("Retrieved new tracks from YouTube");
-            playlist.items.forEach((track, index) => {
-                // TODO: Check for illegal characters in video title
-                const title = track.snippet.title;                      // YouTube video title
-                const id = track.snippet.resourceId.videoId;            // YouTube video ID
-                const videoFile = path.join(os.tmpdir(), id + '.mp4');  // Filename for temporary video file
-                const audioFile = title + '.m4a';                       // Filename for final audio file
-
-                // Remove track from the YouTube playlist
-                youtube.remove(track)
-                    .then(() => {
-                        // Do nothing
-                    }, err => {
-                        // Ignore 404 errors
-                        if (err.code !== 404) console.error(err);
-                    });
-
-                // Make sure we don't download duplicates
-                // TODO: Test this
-                for (let i = 0; i < playlist.items.length; i++) {
-                    // Find first item in the list that has the same ID as this one
-                    if (id === playlist.items[i].snippet.resourceId.videoId) {
-                        if (index === i) {
-                            // If this item is the first one, continue as usual
-                            break;
-                        } else {
-                            // If this item is not the first one, don't process it
-                            return;
-                        }
-                    }
+                // Check if playlist is empty
+                if (playlist.items.length === 0) {
+                    // TODO: Test without resolve, just return
+                    resolve();
+                    return;
                 }
 
-                // Download each track
-                console.log("Downloading " + title);
-                downloadVideo(track, videoFile)
-                    .then(() => {
-                        console.log("Finished " + title);
-                        return getTags(track);
-                    }, console.error)
-                    .then(tags => {
-                        let subDir = '';
-                        let finalPath = '';
+                console.log("Retrieved new tracks from YouTube");
+                playlist.items.forEach((track, index) => {
+                    // TODO: Check for illegal characters in video title
+                    const title = track.snippet.title;                      // YouTube video title
+                    const id = track.snippet.resourceId.videoId;            // YouTube video ID
+                    const videoFile = path.join(os.tmpdir(), id + '.mp4');  // Filename for temporary video file
+                    const audioFile = title + '.m4a';                       // Filename for final audio file
 
-                        // Determine final output path
-                        if (useMonthSubdir) {
-                            // Use a subdirectory in format YYYY-MM if requested
-                            const date = new Date();
+                    // Remove track from the YouTube playlist
+                    youtube.remove(track)
+                        .then(() => {
+                            removed = true;
+                            if (processed === playlist.items.length) resolve();
+                        }, err => {
+                            // Ignore 404 errors
+                            if (err.code !== 404) reject(err);
+                        });
 
-                            if (date.getMonth() + 1 < 10) {
-                                subDir = date.getFullYear() + '-0' + (date.getMonth() + 1);
+                    // Make sure we don't download duplicates
+                    // TODO: Test this
+                    for (let i = 0; i < playlist.items.length; i++) {
+                        // Find first item in the list that has the same ID as this one
+                        if (id === playlist.items[i].snippet.resourceId.videoId) {
+                            if (index === i) {
+                                // If this item is the first one, continue as usual
+                                break;
                             } else {
-                                subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
+                                // Resolve if we're done
+                                if (++processed === playlist.items.length && removed) resolve();
+
+                                // If this item is not the first one, don't process it
+                                return;
+                            }
+                        }
+                    }
+
+                    // Download each track
+                    console.log("Downloading " + title);
+                    downloadVideo(track, videoFile)
+                        .then(() => {
+                            console.log("Finished " + title);
+                            return getTags(track);
+                        }, reject)
+                        .then(tags => {
+                            let subDir = '';
+                            let finalPath = '';
+
+                            // Determine final output path
+                            if (useMonthSubdir) {
+                                // Use a subdirectory in format YYYY-MM if requested
+                                const date = new Date();
+
+                                if (date.getMonth() + 1 < 10) {
+                                    subDir = date.getFullYear() + '-0' + (date.getMonth() + 1);
+                                } else {
+                                    subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
+                                }
+
+                                finalPath = path.join(outputDir, subDir, audioFile);
+                            } else {
+                                finalPath = path.join(outputDir, audioFile);
                             }
 
-                            finalPath = path.join(outputDir, subDir, audioFile);
-                        } else {
-                            finalPath = path.join(outputDir, audioFile);
-                        }
+                            // Make sure the directory exists
+                            try {
+                                // TODO: Error reporting when parent dir does not exist
+                                fs.mkdirSync(path.join(outputDir, subDir));
+                            } catch (err) {
+                                // Ignore error if dir already exists
+                                // TODO: Reject or throw?
+                                if (err.code !== 'EEXIST') throw err;
+                            }
 
-                        // Make sure the directory exists
-                        try {
-                            fs.mkdirSync(path.join(outputDir, subDir));
-                        } catch (err) {
-                            if (err.code !== 'EEXIST') throw err;
-                        }
+                            return extractAudio(videoFile, finalPath, tags);
+                        }, reject)
+                        .then(() => {
+                            // Delete temporary video file
+                            fs.unlink(videoFile);
 
-                        return extractAudio(videoFile, finalPath, tags);
-                    }, console.error)
-                    .then(() => {
-                        // Delete temporary video file
-                        fs.unlink(videoFile);
-                    }, console.error);
-            });
-        }, console.error);
+                            // Resolve if we're done
+                            if (++processed === playlist.items.length && removed) resolve();
+                        }, reject);
+                });
+            }, reject);
+    });
 }
 
 /**
@@ -200,7 +233,7 @@ function downloadVideo(track, outfile) {
 
                 // Resolve promise when download ends
                 downloader.on('end', resolve);
-            }, console.error);
+            }, reject);
     });
 }
 
@@ -237,6 +270,8 @@ function getTags(track) {
 
         // Get artist and title using RegEx on video title
         // TODO: Fix discarding of [.*]
+        // TODO: Discard (official video) and such
+        // TODO: Discard {Genre}
         const re = new RegExp(`(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$`);
         let result = re.exec(title);
         tags.artist = result[1].trim();
@@ -256,8 +291,12 @@ function getTags(track) {
 }
 
 function repeat() {
-    transferPlaylist(spListId, ytListId);
-    downloadPlaylist(ytListId);
+    transferPlaylist(spListId, ytListId)
+        .then(() => {
+            return downloadPlaylist(ytListId);
+        }, console.error)
+        .then(() => {
+        }, console.error);
 }
 
 // Load config file
@@ -272,4 +311,4 @@ useFfmpeg = config['General']['UseFFMPEG'];
 console.log("Read config file");
 
 // Check playlists repeatedly
-setInterval(repeat, interval); // TODO: Make an event listener/emitter?
+setInterval(repeat, interval); // TODO: caching/ETags
