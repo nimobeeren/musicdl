@@ -125,5 +125,5 @@ if (token['access_token'] || token['refresh_token']) {
     console.log("Retrieved YouTube tokens from local storage");
     module.exports.ready = true;
 } else {
-    console.log("YouTube token is unknown format or damaged");
+    console.log("YouTube token is in an unknown format or damaged");
 }

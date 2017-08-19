@@ -1,5 +1,6 @@
 const fs = require('fs');
 const SpotifyWebApi = require('spotify-web-api-node');
+// TODO: Handle missing token files
 const key = require('./credentials/sp-key.json');
 const token = require('./credentials/sp-token.json');
 
@@ -132,5 +133,5 @@ if (token['access_token'] || token['refresh_token']) {
     module.exports.ready = true;
     console.log("Retrieved Spotify tokens from local storage");
 } else {
-    console.log("Spotify token is unknown format or damaged");
+    console.log("Spotify token is in an unknown format or damaged");
 }
