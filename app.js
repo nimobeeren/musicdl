@@ -67,7 +67,9 @@ function transferPlaylist(spListId, ytListId) {
                     // TODO: Same for removing from YouTube playlist
                     console.log("Done adding");
                     spotify.remove(spUsername, spListId, tracks)
-                        .then(undefined, err => {
+                        .then(() => {
+                            console.log("Emptied Spotify playlist");
+                        }, err => {
                             // If removing fails, user intervention is required
                             // TODO: Make sure we do not continue when this happens
                             throw err;
@@ -100,8 +102,9 @@ function downloadPlaylist(ytListId) {
                 console.log("Retrieved new tracks from YouTube");
             }
 
-            let removePromises = [];
-            let downloadPromises = playlist.items.map((track, index, arr) => {
+            let removePromises = [], downloadPromises = [];
+
+            playlist.items.forEach((track, index, arr) => {
                 // TODO: Check for illegal characters in video title
                 const title = track.snippet.title;                      // YouTube video title
                 const id = track.snippet.resourceId.videoId;            // YouTube video ID
@@ -117,12 +120,15 @@ function downloadPlaylist(ytListId) {
                             break;
                         } else {
                             // If this item is not the first one, just remove it
-                            removePromises.push(youtube.remove(track)
-                                .then(() => {
-                                    console.log("Removed track", track.snippet.resourceId.videoId);
-                                }, err => {
-                                    if (err.code !== 404) throw err;
-                                })
+                            removePromises.push(
+                                youtube.remove(track)
+                                    .then(() => {
+                                        console.log("Removed track", track.snippet.resourceId.videoId);
+                                    }, err => {
+                                        // If removing fails, user intervention is required
+                                        // TODO: Make sure we do not continue when this happens
+                                        if (err.code !== 404) throw err;
+                                    })
                             );
                             return;
                         }
@@ -131,64 +137,65 @@ function downloadPlaylist(ytListId) {
 
                 // Download the track
                 console.log("Downloading " + title);
-                return downloadVideo(track, videoFile)
-                    .then(() => {
-                        // Remove the track after downloading
-                        removePromises.push(youtube.remove(track)
-                            .then(() => {
-                                console.log("Removed track", track.snippet.resourceId.videoId);
-                            }, err => {
-                                if (err.code !== 404) throw err;
-                            })
-                        );
+                downloadPromises.push(
+                    downloadVideo(track, videoFile)
+                        .then(() => {
+                            // Remove the track after downloading
+                            removePromises.push(
+                                youtube.remove(track)
+                                    .then(() => {
+                                        console.log("Removed track", track.snippet.resourceId.videoId);
+                                    }, err => {
+                                        // If removing fails, user intervention is required
+                                        // TODO: Make sure we do not continue when this happens
+                                        if (err.code !== 404) throw err;
+                                    })
+                            );
 
-                        // Get tags before extracting audio
-                        return getTags(track);
-                    }, err => {
-                        throw err;
-                    })
-                    .then(tags => {
-                        let subDir = '';
-                        let finalPath = '';
+                            // Get tags before extracting audio
+                            return getTags(track);
+                        }, err => {
+                            throw err;
+                        })
+                        .then(tags => {
+                            let subDir = '';
+                            let finalPath = '';
 
-                        // Determine final output path
-                        if (useMonthSubdir) {
-                            // Use a subdirectory in format YYYY-MM if requested
-                            const date = new Date();
-                            if (date.getMonth() + 1 < 10) {
-                                subDir = date.getFullYear() + '-0' + (date.getMonth() + 1);
+                            // Determine final output path
+                            if (useMonthSubdir) {
+                                // Use a subdirectory in format YYYY-MM if requested
+                                const date = new Date();
+                                if (date.getMonth() + 1 < 10) {
+                                    subDir = date.getFullYear() + '-0' + (date.getMonth() + 1);
+                                } else {
+                                    subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
+                                }
+                                finalPath = path.join(outputDir, subDir, audioFile);
                             } else {
-                                subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
+                                finalPath = path.join(outputDir, audioFile);
                             }
-                            finalPath = path.join(outputDir, subDir, audioFile);
-                        } else {
-                            finalPath = path.join(outputDir, audioFile);
-                        }
 
-                        // Make sure the directory exists
-                        try {
-                            // TODO: Error reporting when parent dir does not exist
-                            fs.mkdirSync(path.join(outputDir, subDir));
-                        } catch (err) {
-                            // Ignore error if dir already exists
-                            if (err.code !== 'EEXIST') throw err;
-                        }
+                            // Make sure the directory exists
+                            try {
+                                // TODO: Error reporting when parent dir does not exist
+                                fs.mkdirSync(path.join(outputDir, subDir));
+                            } catch (err) {
+                                // Ignore error if dir already exists
+                                if (err.code !== 'EEXIST') throw err;
+                            }
 
-                        return extractAudio(videoFile, finalPath, tags);
-                    }, err => {
-                        throw err;
-                    })
-                    .then(() => {
-                        // Delete temporary video file
-                        fs.unlink(videoFile);
-                        console.log("Finished " + title);
-                    }, err => {
-                        throw err;
-                    });
-            });
-
-            downloadPromises.filter(promise => {
-                return typeof promise !== 'undefined';
+                            return extractAudio(videoFile, finalPath, tags);
+                        }, err => {
+                            throw err;
+                        })
+                        .then(() => {
+                            // Delete temporary video file
+                            fs.unlink(videoFile);
+                            console.log("Finished " + title);
+                        }, err => {
+                            throw err;
+                        })
+                );
             });
 
             return Promise.all(downloadPromises.concat(removePromises));
