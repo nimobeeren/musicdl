@@ -39,42 +39,38 @@ function transferPlaylist(spListId, ytListId) {
                 console.log("Retrieved new tracks from Spotify");
             }
 
-            let youtubePromises = tracks.map(track => {
-                const query = track.artists[0].name + ' - ' + track.name;
-                let id, title;
-                return youtube.search(query)
-                    .then(result => {
-                        id = result.items[0].id.videoId;
-                        title = result.items[0].snippet.title;
-                        // TODO: Fix not all tracks being added even though promise resolves
-                        return youtube.add(id, ytListId);
-                    }, err => {
-                        throw err;
-                    })
-                    .then(() => {
-                        // TODO: Don't do this if youtube.search fails
-                        console.log(`Added to YouTube: ${title} (${id})`);
-                        return id;
-                    }, err => {
-                        throw err;
-                    });
-            });
+            // Find tracks on YouTube and move them to the YouTube playlist sequentially
+            return new Promise(resolve => {
+                let recurse = (i = 0) => {
+                    if (i >= tracks.length) {
+                        resolve(i);
+                        return;
+                    }
 
-            return Promise.all(youtubePromises)
-                .then(() => {
-                    // When we're done adding tracks to YouTube, remove them from Spotify
-                    // TODO: Don't remove until a track has been added to youtube (maybe remove individual tracks)
-                    // TODO: Same for removing from YouTube playlist
-                    console.log("Done adding");
-                    spotify.remove(spUsername, spListId, tracks)
-                        .then(() => {
-                            console.log("Emptied Spotify playlist");
+                    const query = tracks[i].artists[0].name + ' - ' + tracks[i].name;
+                    let id;
+
+                    youtube.search(query)
+                        .then(result => {
+                            id = result.items[0].id.videoId;
+                            console.log("Transferring", query);
+                            return youtube.add(id, ytListId);
                         }, err => {
-                            // If removing fails, user intervention is required
-                            // TODO: Make sure we do not continue when this happens
+                            throw err;
+                        })
+                        .then(() => {
+                            return spotify.remove(spUsername, spListId, [tracks[i]]);
+                        }, err => {
+                            throw err;
+                        })
+                        .then(() => {
+                            recurse(++i);
+                        }, err => {
                             throw err;
                         });
-                });
+                };
+                recurse();
+            });
         }, err => {
             throw err;
         });
@@ -122,9 +118,7 @@ function downloadPlaylist(ytListId) {
                             // If this item is not the first one, just remove it
                             removePromises.push(
                                 youtube.remove(track)
-                                    .then(() => {
-                                        console.log("Removed track", track.snippet.resourceId.videoId);
-                                    }, err => {
+                                    .catch(err => {
                                         // If removing fails, user intervention is required
                                         // TODO: Make sure we do not continue when this happens
                                         if (err.code !== 404) throw err;
@@ -143,9 +137,7 @@ function downloadPlaylist(ytListId) {
                             // Remove the track after downloading
                             removePromises.push(
                                 youtube.remove(track)
-                                    .then(() => {
-                                        console.log("Removed track", track.snippet.resourceId.videoId);
-                                    }, err => {
+                                    .catch(err => {
                                         // If removing fails, user intervention is required
                                         // TODO: Make sure we do not continue when this happens
                                         if (err.code !== 404) throw err;
@@ -209,15 +201,13 @@ function downloadPlaylist(ytListId) {
  * @returns {Promise}
  */
 function downloadVideo(track, outfile) {
-    return new Promise((resolve, reject) => {
-        console.log('downloading');
+    return new Promise(resolve => {
         const id = track.snippet.resourceId.videoId;
         let format = undefined;
 
-        // Find the best format to download
         ytdl.getInfo(id)
             .then(info => {
-                console.log('got info');
+                // Find the best format to download
                 info.formats.forEach(fmt => {
                     // TODO: Prioritize non-video streams with the same bitrate
                     // TODO: Find out if we can use opus/vorbis and if it's better quality
@@ -228,7 +218,6 @@ function downloadVideo(track, outfile) {
 
                 // Create downloader object
                 const downloader = ytdl(id, {format: format});
-                downloader.on('response', () => console.log('got response'));
 
                 // Write downloaded video to disk
                 // TODO: Probably throws error when file is being written twice at the same time (avoidable by not downloading twice)
@@ -236,14 +225,14 @@ function downloadVideo(track, outfile) {
 
                 // TODO: Communicate progress to web interface
                 // Print progress every so often
-                let lastProgress = 0;
-                downloader.on('progress', (chunkLength, downloaded, total) => {
-                    let percent = downloaded / total * 100;
-                    if (percent >= lastProgress + 10) {
-                        console.log(percent + '%');
-                        lastProgress = percent;
-                    }
-                });
+                // let lastProgress = 0;
+                // downloader.on('progress', (chunkLength, downloaded, total) => {
+                //     let percent = downloaded / total * 100;
+                //     if (percent >= lastProgress + 10) {
+                //         console.log(percent + '%');
+                //         lastProgress = percent;
+                //     }
+                // });
 
                 // Resolve promise when download ends
                 downloader.on('end', () => {
@@ -317,7 +306,7 @@ function repeat() {
         .then(() => {
             return downloadPlaylist(ytListId);
         }, console.error)
-        .then(console.log, console.error);
+        .catch(console.error);
 }
 
 // Load config file
