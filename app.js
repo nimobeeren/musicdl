@@ -47,6 +47,18 @@ function transferPlaylist(spListId, ytListId) {
                         return;
                     }
 
+                    // Make sure we don't transfer duplicates
+                    if (tracks.find(t => t.uri === tracks[i].uri) !== tracks[i]) {
+                        // If the same track appears somewhere before this one in the playlist, remove it
+                        spotify.remove(spUsername, spListId, [tracks[i]])
+                            .then(() => {
+                                recurse(++i);
+                            }, err => {
+                                throw err;
+                            });
+                        return;
+                    }
+
                     const query = tracks[i].artists[0].name + ' - ' + tracks[i].name;
                     let id;
 
@@ -108,25 +120,13 @@ function downloadPlaylist(ytListId) {
                 const audioFile = title + '.m4a';                       // Filename for final audio file
 
                 // Make sure we don't download duplicates
-                for (let i = 0; i < arr.length; i++) {
-                    // Find first item in the list that has the same ID as this one
-                    if (id === arr[i].snippet.resourceId.videoId) {
-                        if (index === i) {
-                            // If this item is the first one, continue as usual
-                            break;
-                        } else {
-                            // If this item is not the first one, just remove it
-                            removePromises.push(
-                                youtube.remove(track)
-                                    .catch(err => {
-                                        // If removing fails, user intervention is required
-                                        // TODO: Make sure we do not continue when this happens
-                                        if (err.code !== 404) throw err;
-                                    })
-                            );
-                            return;
-                        }
-                    }
+                if (playlist.items.find(t => t.snippet.resourceId.videoId === id) !== track) {
+                    // If the same track appears somewhere before this one in the playlist, remove it
+                    youtube.remove(track)
+                        .catch(err => {
+                            throw err;
+                        });
+                    return;
                 }
 
                 // Download the track
