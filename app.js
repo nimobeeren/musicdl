@@ -69,7 +69,6 @@ function transferPlaylist(spListId, ytListId) {
                         artist: tracks[i].artists[0].name
                     };
                     queue.push(trackInfo);
-                    console.log(queue);
 
                     youtube.search(trackInfo.artist + ' - ' + trackInfo.title)
                         .then(result => {
@@ -87,7 +86,6 @@ function transferPlaylist(spListId, ytListId) {
                         .then(() => {
                             // TODO: Start downloading right away
                             trackInfo.state = null;
-                            console.log(queue);
                             recurse(++i);
                         }, err => {
                             throw err;
@@ -156,7 +154,6 @@ function downloadPlaylist(ytListId) {
                 }
                 trackInfo.state = 'down';
                 console.log("Downloading", trackInfo.ytId);
-                console.log(queue);
 
                 // Download the track
                 downloadPromises.push(
@@ -174,7 +171,6 @@ function downloadPlaylist(ytListId) {
                             trackInfo.artist = tags.artist;
                             if (tags.genre) trackInfo.genre = tags.genre;
                             console.log(`Extracting ${trackInfo.artist} - ${trackInfo.title}`);
-                            console.log(queue);
 
                             // Determine final output path
                             let subDir = '';
@@ -216,7 +212,6 @@ function downloadPlaylist(ytListId) {
                             fs.unlink(videoFile);
                             trackInfo.state = null;
                             console.log(`Finished ${trackInfo.artist} - ${trackInfo.title}`);
-                            console.log(queue);
                         }, err => {
                             throw err;
                         })
