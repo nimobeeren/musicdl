@@ -13,9 +13,7 @@ const youtube = require('./youtube');
 let interval, outputDir, spUsername, spListId, ytListId, useMonthSubdir, useFfmpeg;
 
 // Holds information on tracks currently being processed
-let queue = {
-    tracks: []
-};
+let queue = [];
 
 
 /**
@@ -59,7 +57,7 @@ function transferPlaylist(spListId, ytListId) {
                     }
 
                     // If this track is already being transferred, don't add it again
-                    if (queue.tracks.some(t => t.spId === tracks[i].uri)) {
+                    if (queue.some(t => t.spId === tracks[i].uri)) {
                         return;
                     }
 
@@ -70,13 +68,12 @@ function transferPlaylist(spListId, ytListId) {
                         title: tracks[i].name,
                         artist: tracks[i].artists[0].name
                     };
-                    queue.tracks.push(trackInfo);
+                    queue.push(trackInfo);
                     console.log(queue);
 
-                    const query = trackInfo.artist + ' - ' + trackInfo.title;
-                    youtube.search(query)
+                    youtube.search(trackInfo.artist + ' - ' + trackInfo.title)
                         .then(result => {
-                            console.log("Transferring", query);
+                            console.log("Transferring", trackInfo.artist + ' - ' + trackInfo.title);
                             trackInfo.ytId = result.items[0].id.videoId;
                             return youtube.add(trackInfo.ytId, ytListId);
                         }, err => {
@@ -140,12 +137,12 @@ function downloadPlaylist(ytListId) {
                 }
 
                 // If this track is already being downloaded/extracted, don't add it again
-                if (queue.tracks.some(t => t.ytId === id && t.state === 'down' || t.state === 'extract')) {
+                if (queue.some(t => t.ytId === id && t.state === 'down' || t.state === 'extract')) {
                     return;
                 }
 
                 // Find the track in the queue, or add it if it doesn't exist
-                let trackInfo = queue.tracks.find(t => t.ytId === id);
+                let trackInfo = queue.find(t => t.ytId === id);
                 if (!trackInfo) {
                     // Track was discovered on YouTube, so add it to the queue
                     trackInfo = {
@@ -155,7 +152,7 @@ function downloadPlaylist(ytListId) {
                         title: undefined,
                         artist: undefined
                     };
-                    queue.tracks.push(trackInfo);
+                    queue.push(trackInfo);
                 }
                 trackInfo.state = 'down';
                 console.log("Downloading", trackInfo.ytId);
