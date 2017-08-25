@@ -12,6 +12,12 @@ const youtube = require('./youtube');
 // Define config values
 let interval, outputDir, spUsername, spListId, ytListId, useMonthSubdir, useFfmpeg;
 
+// Holds information on tracks currently being processed
+let queue = {
+    tracks: []
+};
+
+
 /**
  * Moves all tracks from a Spotify playlist to a YouTube playlist, using YouTube's search
  * @param spListId Spotify playlist ID
@@ -59,14 +65,27 @@ function transferPlaylist(spListId, ytListId) {
                         return;
                     }
 
-                    const query = tracks[i].artists[0].name + ' - ' + tracks[i].name;
-                    let id;
+                    // If this track is already being transferred, don't add it again
+                    if (queue.tracks.some(t => t.spId === tracks[i].uri)) {
+                        return;
+                    }
 
+                    let trackInfo = {
+                        spId: tracks[i].uri,
+                        state: 'move',
+                        added: Date.now(),
+                        title: tracks[i].name,
+                        artist: tracks[i].artists[0].name
+                    };
+                    queue.tracks.push(trackInfo);
+                    console.log(queue);
+
+                    const query = trackInfo.artist + ' - ' + trackInfo.title;
                     youtube.search(query)
                         .then(result => {
-                            id = result.items[0].id.videoId;
                             console.log("Transferring", query);
-                            return youtube.add(id, ytListId);
+                            trackInfo.ytId = result.items[0].id.videoId;
+                            return youtube.add(trackInfo.ytId, ytListId);
                         }, err => {
                             throw err;
                         })
@@ -76,6 +95,9 @@ function transferPlaylist(spListId, ytListId) {
                             throw err;
                         })
                         .then(() => {
+                            // TODO: Start downloading right away
+                            trackInfo.state = null;
+                            console.log(queue);
                             recurse(++i);
                         }, err => {
                             throw err;
@@ -106,13 +128,11 @@ function downloadPlaylist(ytListId) {
             // Check if playlist is empty
             if (playlist.items.length === 0) {
                 return;
-            } else {
-                console.log("Retrieved new tracks from YouTube");
             }
 
             let removePromises = [], downloadPromises = [];
 
-            playlist.items.forEach((track, index, arr) => {
+            playlist.items.forEach(track => {
                 // TODO: Check for illegal characters in video title
                 const title = track.snippet.title;                      // YouTube video title
                 const id = track.snippet.resourceId.videoId;            // YouTube video ID
@@ -122,38 +142,57 @@ function downloadPlaylist(ytListId) {
                 // Make sure we don't download duplicates
                 if (playlist.items.find(t => t.snippet.resourceId.videoId === id) !== track) {
                     // If the same track appears somewhere before this one in the playlist, remove it
-                    youtube.remove(track)
-                        .catch(err => {
-                            throw err;
-                        });
+                    removePromises.push(
+                        youtube.remove(track)
+                            .catch(err => {
+                                throw err;
+                            })
+                    );
                     return;
                 }
 
+                // If this track is already being downloaded/extracted, don't add it again
+                if (queue.tracks.some(t => t.ytId === id && t.state === 'down' || t.state === 'extract')) {
+                    return;
+                }
+
+                // Find the track in the queue, or add it if it doesn't exist
+                let trackInfo = queue.tracks.find(t => t.ytId === id);
+                if (!trackInfo) {
+                    // Track was discovered on YouTube, so add it to the queue
+                    trackInfo = {
+                        // TODO: Get artist/title when adding to queue
+                        ytId: id,
+                        added: Date.now(),
+                        title: undefined,
+                        artist: undefined
+                    };
+                    queue.tracks.push(trackInfo);
+                }
+                trackInfo.state = 'down';
+                console.log("Downloading", trackInfo.ytId);
+                console.log(queue);
+
                 // Download the track
-                console.log("Downloading " + title);
                 downloadPromises.push(
                     downloadVideo(track, videoFile)
                         .then(() => {
-                            // Remove the track after downloading
-                            removePromises.push(
-                                youtube.remove(track)
-                                    .catch(err => {
-                                        // If removing fails, user intervention is required
-                                        // TODO: Make sure we do not continue when this happens
-                                        if (err.code !== 404) throw err;
-                                    })
-                            );
-
                             // Get tags before extracting audio
                             return getTags(track);
                         }, err => {
                             throw err;
                         })
                         .then(tags => {
-                            let subDir = '';
-                            let finalPath = '';
+                            // Save tags and set track state to extract
+                            trackInfo.state = 'extract';
+                            trackInfo.title = tags.title;
+                            trackInfo.artist = tags.artist;
+                            if (tags.genre) trackInfo.genre = tags.genre;
+                            console.log(`Extracting ${trackInfo.artist} - ${trackInfo.title}`);
+                            console.log(queue);
 
                             // Determine final output path
+                            let subDir = '';
                             if (useMonthSubdir) {
                                 // Use a subdirectory in format YYYY-MM if requested
                                 const date = new Date();
@@ -162,10 +201,8 @@ function downloadPlaylist(ytListId) {
                                 } else {
                                     subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
                                 }
-                                finalPath = path.join(outputDir, subDir, audioFile);
-                            } else {
-                                finalPath = path.join(outputDir, audioFile);
                             }
+                            let finalPath = path.join(outputDir, subDir, audioFile);
 
                             // Make sure the directory exists
                             try {
@@ -181,9 +218,20 @@ function downloadPlaylist(ytListId) {
                             throw err;
                         })
                         .then(() => {
+                            // Remove the track from the YouTube playlist
+                            return youtube.remove(track)
+                                .catch(err => {
+                                    // If removing fails, user intervention is required
+                                    // TODO: Make sure we do not continue when this happens
+                                    if (err.code !== 404) throw err;
+                                });
+                        })
+                        .then(() => {
                             // Delete temporary video file
                             fs.unlink(videoFile);
-                            console.log("Finished " + title);
+                            trackInfo.state = null;
+                            console.log(`Finished ${trackInfo.artist} - ${trackInfo.title}`);
+                            console.log(queue);
                         }, err => {
                             throw err;
                         })
@@ -322,3 +370,4 @@ console.log("Read config file");
 
 // Check playlists repeatedly
 setInterval(repeat, interval); // TODO: caching/ETags
+// repeat();
