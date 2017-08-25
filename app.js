@@ -38,13 +38,6 @@ function transferPlaylist(spListId, ytListId) {
 
     return spotify.list(spUsername, spListId)
         .then(tracks => {
-            // Return if playlist is empty
-            if (tracks.length === 0) {
-                return;
-            } else {
-                console.log("Retrieved new tracks from Spotify");
-            }
-
             // Find tracks on YouTube and move them to the YouTube playlist sequentially
             return new Promise(resolve => {
                 let recurse = (i = 0) => {
@@ -125,11 +118,6 @@ function transferPlaylist(spListId, ytListId) {
 function downloadPlaylist(ytListId) {
     return youtube.list(ytListId)
         .then(playlist => {
-            // Check if playlist is empty
-            if (playlist.items.length === 0) {
-                return;
-            }
-
             let removePromises = [], downloadPromises = [];
 
             playlist.items.forEach(track => {
