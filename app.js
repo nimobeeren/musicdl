@@ -116,11 +116,13 @@ function downloadPlaylist(ytListId) {
             let removePromises = [], downloadPromises = [];
 
             playlist.items.forEach(track => {
-                // TODO: Check for illegal characters in video title
-                const title = track.snippet.title;                      // YouTube video title
-                const id = track.snippet.resourceId.videoId;            // YouTube video ID
-                const videoFile = path.join(os.tmpdir(), id + '.mp4');  // Filename for temporary video file
-                const audioFile = title + '.m4a';                       // Filename for final audio file
+                const title = track.snippet.title;                   // YouTube video title
+                const id = track.snippet.resourceId.videoId;         // YouTube video ID
+                let videoFile = path.join(os.tmpdir(), id + '.mp4'); // Filename for temporary video file
+                let audioFile = title + '.m4a';                      // Filename for final audio file
+
+                // Replace forbidden characters in filename
+                audioFile = audioFile.replace(/[/\\%*:|"<>?]/, '_');
 
                 // Make sure we don't download duplicates
                 if (playlist.items.find(t => t.snippet.resourceId.videoId === id) !== track) {
