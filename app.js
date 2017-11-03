@@ -305,18 +305,23 @@ function extractAudio(infile, outfile, tags = {}) {
  */
 function getTags(track) {
     return new Promise((resolve, reject) => {
-        const title = track.snippet.title; // video title
+        const videoTitle = track.snippet.title;
         let tags = {};
 
         // Get artist and title using RegEx on video title
-        // TODO: Fallback for tracks that don't match this pattern (!)
         // TODO: Fix discarding of [.*]
         // TODO: Discard (official video) and such
         // TODO: Discard {Genre}
         const re = new RegExp(`(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$`);
-        let result = re.exec(title);
-        tags.artist = result[1].trim();
-        tags.title = result[2].trim();
+        let result = re.exec(videoTitle);
+
+        if (result[2]) {
+            tags.artist = result[1].trim();
+            tags.title = result[2].trim();
+        } else {
+            // Fallback for when video title does not match RegEx
+            tags.title = videoTitle;
+        }
 
         // Set genre if channel appears in config file
         youtube.getChannelTitle(track)
@@ -352,4 +357,4 @@ console.log("Read config file");
 
 // Check playlists repeatedly
 setInterval(repeat, interval); // TODO: caching/ETags
-// repeat();
+
