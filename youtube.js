@@ -2,8 +2,8 @@
 
 const fs = require('fs');
 const google = require('googleapis');
-const key = require('./credentials/yt-key.json');
-const token = require('./credentials/yt-token.json');
+const key = require('./credentials/youtubeKey.json');
+const token = require('./credentials/youtubeToken.json');
 
 let youtube = google.youtube('v3'),
     OAuth2 = google.auth.OAuth2,
@@ -35,7 +35,7 @@ module.exports = {
                 if (!err) {
                     // Store tokens locally
                     try {
-                        fs.writeFile('./credentials/yt-token.json', JSON.stringify(tokens), 'utf-8', err => {
+                        fs.writeFile('./credentials/youtubeToken.json', JSON.stringify(tokens), 'utf-8', err => {
                             err && reject(err);
                         });
                     } catch (err) {

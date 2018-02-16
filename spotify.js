@@ -1,8 +1,8 @@
 const fs = require('fs');
 const SpotifyWebApi = require('spotify-web-api-node');
 // TODO: Handle missing token files
-const key = require('./credentials/sp-key.json');
-const token = require('./credentials/sp-token.json');
+const key = require('./credentials/spotifyKey.json');
+const token = require('./credentials/spotifyToken.json');
 
 let scopes = ['playlist-modify-private'],
     clientId = key.client_id,
@@ -33,7 +33,7 @@ module.exports = {
                 .then(data => {
                     // Store tokens locally
                     try {
-                        fs.writeFile('./credentials/sp-token.json', JSON.stringify(data.body), 'utf-8', err => {
+                        fs.writeFile('./credentials/spotifyToken.json', JSON.stringify(data.body), 'utf-8', err => {
                             err && reject(err);
                         });
                     } catch (err) {
@@ -70,7 +70,7 @@ module.exports = {
                                 token['access_token'] = data.body['access_token'];
                                 spotify.setAccessToken(token['access_token']);
                                 try {
-                                    fs.writeFile('./credentials/sp-token.json', JSON.stringify(token), 'utf-8', err => {
+                                    fs.writeFile('./credentials/spotifyToken.json', JSON.stringify(token), 'utf-8', err => {
                                         err && reject(err);
                                     });
                                 } catch (err) {
@@ -107,7 +107,7 @@ module.exports = {
                                 token['access_token'] = data.body['access_token'];
                                 spotify.setAccessToken(token['access_token']);
                                 try {
-                                    fs.writeFile('./credentials/sp-token.json', JSON.stringify(token), 'utf-8', err => {
+                                    fs.writeFile('./credentials/spotifyToken.json', JSON.stringify(token), 'utf-8', err => {
                                         err && reject(err);
                                     });
                                 } catch (err) {
