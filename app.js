@@ -93,118 +93,99 @@ async function transferPlaylist(spListId, ytListId) {
  */
 // TODO: Fix operation not permitted when opening video file
 // TODO: Will download some tracks twice if function runs again before finishing
-function downloadPlaylist(ytListId) {
-    return youtube.list(ytListId)
-        .then(playlist => {
-            let removePromises = [], downloadPromises = [];
+async function downloadPlaylist(ytListId) {
+    const playlist = await youtube.list(ytListId);
 
-            playlist.items.forEach(track => {
-                const title = track.snippet.title;                   // YouTube video title
-                const id = track.snippet.resourceId.videoId;         // YouTube video ID
-                let videoFile = path.join(os.tmpdir(), id + '.mp4'); // Filename for temporary video file
-                let audioFile = title + '.m4a';                      // Filename for final audio file
+    playlist.items.forEach(async track => {
+        // Get some info about this track
+        const title = track.snippet.title;                   // YouTube video title
+        const id = track.snippet.resourceId.videoId;         // YouTube video ID
+        let videoFile = path.join(os.tmpdir(), id + '.mp4'); // Filename for temporary video file
+        let audioFile = title + '.m4a';                      // Filename for final audio file
 
-                // Replace forbidden characters in filename
-                audioFile = audioFile.replace(/[/\\%*:|"<>?]/, '_');
+        // Replace forbidden characters in filename
+        audioFile = audioFile.replace(/[/\\%*:|"<>?]/, '_');
 
-                // Make sure we don't download duplicates
-                if (playlist.items.find(t => t.snippet.resourceId.videoId === id) !== track) {
-                    // If the same track appears somewhere before this one in the playlist, remove it
-                    removePromises.push(
-                        youtube.remove(track)
-                            .catch(err => {
-                                throw err;
-                            })
-                    );
-                    return;
-                }
+        // Make sure we don't download duplicates
+        if (playlist.items.find(t => t.snippet.resourceId.videoId === id) !== track) {
+            // If the same track appears somewhere before this one in the playlist, remove it
+            await youtube.remove(track);
+            return;
+        }
 
-                // If this track is already being downloaded/extracted, don't add it again
-                if (queue.some(t => t.ytId === id && t.state === 'down' || t.state === 'extract')) {
-                    return;
-                }
+        // If this track is already being downloaded/extracted, don't add it again
+        if (queue.some(t => t.ytId === id && t.state === 'down' || t.state === 'extract')) {
+            return;
+        }
 
-                // Find the track in the queue, or add it if it doesn't exist
-                let trackInfo = queue.find(t => t.ytId === id);
-                if (!trackInfo) {
-                    // Track was discovered on YouTube, so add it to the queue
-                    trackInfo = {
-                        // TODO: Get artist/title when adding to queue
-                        ytId: id,
-                        added: Date.now(),
-                        title: undefined,
-                        artist: undefined
-                    };
-                    queue.push(trackInfo);
-                }
-                trackInfo.state = 'down';
-                console.log("Downloading", trackInfo.ytId);
+        // Find the track in the queue, or add it if it doesn't exist
+        let trackInfo = queue.find(t => t.ytId === id);
+        if (!trackInfo) {
+            // Track was discovered on YouTube, so add it to the queue
+            trackInfo = {
+                // TODO: Get artist/title when adding to queue
+                ytId: id,
+                added: Date.now(),
+                title: undefined,
+                artist: undefined
+            };
+            queue.push(trackInfo);
+        }
+        trackInfo.state = 'down';
+        console.log("Downloading", trackInfo.ytId);
 
-                // Download the track
-                downloadPromises.push(
-                    downloadVideo(track, videoFile)
-                        .then(() => {
-                            // Get tags before extracting audio
-                            return getTags(track);
-                        }, err => {
-                            throw err;
-                        })
-                        .then(tags => {
-                            // Save tags and set track state to extract
-                            trackInfo.state = 'extract';
-                            trackInfo.title = tags.title;
-                            trackInfo.artist = tags.artist;
-                            if (tags.genre) trackInfo.genre = tags.genre;
-                            console.log(`Extracting ${trackInfo.artist} - ${trackInfo.title}`);
+        // Download the track
+        await downloadVideo(track, videoFile);
 
-                            // Determine final output path
-                            let subDir = '';
-                            if (useMonthSubdir) {
-                                // Use a subdirectory in format YYYY-MM if requested
-                                const date = new Date();
-                                if (date.getMonth() + 1 < 10) {
-                                    subDir = date.getFullYear() + '-0' + (date.getMonth() + 1);
-                                } else {
-                                    subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
-                                }
-                            }
-                            let finalPath = path.join(outputDir, subDir, audioFile);
+        // Get tags before extracting audio
+        const tags = await getTags(track);
 
-                            // Make sure the directory exists
-                            try {
-                                // TODO: Error reporting when parent dir does not exist
-                                fs.mkdirSync(path.join(outputDir, subDir));
-                            } catch (err) {
-                                // Ignore error if dir already exists
-                                if (err.code !== 'EEXIST') throw err;
-                            }
+        // Save tags and set track state to extract
+        trackInfo.state = 'extract';
+        trackInfo.title = tags.title;
+        trackInfo.artist = tags.artist;
+        if (tags.genre) trackInfo.genre = tags.genre;
+        console.log(`Extracting ${trackInfo.artist} - ${trackInfo.title}`);
 
-                            return extractAudio(videoFile, finalPath, tags);
-                        }, err => {
-                            throw err;
-                        })
-                        .then(() => {
-                            // Remove the track from the YouTube playlist
-                            return youtube.remove(track)
-                                .catch(err => {
-                                    // If removing fails, user intervention is required
-                                    // TODO: Make sure we do not continue when this happens
-                                    if (err.code !== 404) throw err;
-                                });
-                        })
-                        .then(() => {
-                            // Delete temporary video file
-                            fs.unlink(videoFile);
-                            trackInfo.state = null;
-                            console.log(`Finished ${trackInfo.artist} - ${trackInfo.title}`);
-                        }, err => {
-                            throw err;
-                        })
-                );
-            });
+        // Determine final output path
+        let subDir = '';
+        if (useMonthSubdir) {
+            // Use a subdirectory in format YYYY-MM if requested
+            const date = new Date();
+            if (date.getMonth() + 1 < 10) {
+                subDir = date.getFullYear() + '-0' + (date.getMonth() + 1);
+            } else {
+                subDir = date.getFullYear() + '-' + (date.getMonth() + 1);
+            }
+        }
+        let finalPath = path.join(outputDir, subDir, audioFile);
 
-            return Promise.all(downloadPromises.concat(removePromises));
-        });
+        // Make sure the directory exists
+        try {
+            // TODO: Error reporting when parent dir does not exist
+            fs.mkdirSync(path.join(outputDir, subDir));
+        } catch (err) {
+            // Ignore error if dir already exists
+            if (err.code !== 'EEXIST') throw err;
+        }
+
+        // Extract audio
+        await extractAudio(videoFile, finalPath, tags);
+
+        // Remove the track from the YouTube playlist
+        try {
+            await youtube.remove(track);
+        } catch (e) {
+            // If removing fails, user intervention is required
+            // TODO: Make sure we do not continue when this happens
+            if (e.code !== 404) throw e;
+        }
+
+        // Delete temporary video file
+        fs.unlink(videoFile);
+        trackInfo.state = null;
+        console.log(`Finished ${trackInfo.artist} - ${trackInfo.title}`);
+    });
 }
 
 /**
@@ -230,7 +211,7 @@ function downloadVideo(track, outfile) {
                 });
 
                 // Create downloader object
-                const downloader = ytdl(id, {format: format});
+                const downloader = ytdl(id, { format: format });
 
                 // Write downloaded video to disk
                 // TODO: Probably throws error when file is being written twice at the same time
@@ -276,7 +257,7 @@ function extractAudio(infile, outfile, tags = {}) {
         }
 
         shell.exec(`${alias} -i ${infile} -y -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
-            {silent: true}, (code, stdout, stderr) => {
+            { silent: true }, (code, stdout, stderr) => {
                 code === 0 ? resolve(stdout) : reject(stderr);
             });
     });
