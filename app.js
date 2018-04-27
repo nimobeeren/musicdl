@@ -194,46 +194,46 @@ async function downloadPlaylist(ytListId) {
  * @param outfile The path to the output video file
  * @returns {Promise}
  */
-function downloadVideo(track, outfile) {
-    return new Promise(resolve => {
-        const id = track.snippet.resourceId.videoId;
-        let format = undefined;
+async function downloadVideo(track, outfile) {
+    const id = track.snippet.resourceId.videoId;
+    let format = undefined;
 
-        ytdl.getInfo(id)
-            .then(info => {
-                // Find the best format to download
-                info.formats.forEach(fmt => {
-                    // TODO: Prioritize non-video streams with the same bitrate
-                    // TODO: Find out if we can use opus/vorbis and if it's better quality
-                    if (fmt.audioEncoding === 'aac' && (!format || fmt.audioBitrate > format.audioBitrate)) {
-                        format = fmt;
-                    }
-                });
+    // Get track info, used for determining which format to download
+    const info = await ytdl.getInfo(id);
 
-                // Create downloader object
-                const downloader = ytdl(id, { format: format });
+    // Find the best format to download
+    info.formats.forEach(fmt => {
+        // TODO: Prioritize non-video streams with the same bitrate
+        // TODO: Find out if we can use opus/vorbis and if it's better quality
+        if (fmt.audioEncoding === 'aac' && (!format || fmt.audioBitrate > format.audioBitrate)) {
+            format = fmt;
+        }
+    });
 
-                // Write downloaded video to disk
-                // TODO: Probably throws error when file is being written twice at the same time
-                // (avoidable by not downloading twice)
-                downloader.pipe(fs.createWriteStream(outfile));
+    // Create downloader object
+    const downloader = ytdl(id, { format: format });
 
-                // TODO: Communicate progress to web interface
-                // Print progress every so often
-                // let lastProgress = 0;
-                // downloader.on('progress', (chunkLength, downloaded, total) => {
-                //     let percent = downloaded / total * 100;
-                //     if (percent >= lastProgress + 10) {
-                //         console.log(percent + '%');
-                //         lastProgress = percent;
-                //     }
-                // });
+    // Write downloaded video to disk
+    // TODO: Probably throws error when file is being written twice at the same time
+    // (avoidable by not downloading twice)
+    downloader.pipe(fs.createWriteStream(outfile));
 
-                // Resolve promise when download ends
-                downloader.on('end', () => {
-                    resolve();
-                });
-            });
+    // TODO: Communicate progress to web interface
+    // Print progress every so often
+    // let lastProgress = 0;
+    // downloader.on('progress', (chunkLength, downloaded, total) => {
+    //     let percent = downloaded / total * 100;
+    //     if (percent >= lastProgress + 10) {
+    //         console.log(percent + '%');
+    //         lastProgress = percent;
+    //     }
+    // });
+
+    // Resolve promise when download ends
+    return new Promise((resolve, reject) => {
+        downloader.on('end', () => {
+            resolve();
+        });
     });
 }
 
@@ -246,16 +246,16 @@ function downloadVideo(track, outfile) {
  * @returns {Promise}
  */
 function extractAudio(infile, outfile, tags = {}) {
+    let alias = 'avconv';
+    if (useFfmpeg) {
+        alias = 'ffmpeg'
+    }
+
+    if (!fs.existsSync(infile)) {
+        throw new Error('Video file does not exist');
+    }
+
     return new Promise((resolve, reject) => {
-        let alias = 'avconv';
-        if (useFfmpeg) {
-            alias = 'ffmpeg'
-        }
-
-        if (!fs.existsSync(infile)) {
-            throw new Error('Video file does not exist');
-        }
-
         shell.exec(`${alias} -i ${infile} -y -vn -acodec copy -metadata artist="${tags.artist || ''}" -metadata title="${tags.title || ''}" -metadata genre="${tags.genre || ''}" "${outfile}"`,
             { silent: true }, (code, stdout, stderr) => {
                 code === 0 ? resolve(stdout) : reject(stderr);
@@ -268,45 +268,42 @@ function extractAudio(infile, outfile, tags = {}) {
  * @param track YouTube video object
  * @returns {Promise}
  */
-function getTags(track) {
-    return new Promise((resolve, reject) => {
-        const videoTitle = track.snippet.title;
-        let tags = {};
+async function getTags(track) {
+    const videoTitle = track.snippet.title;
+    let tags = {};
 
-        // Get artist and title using RegEx on video title
-        // TODO: Fix discarding of [.*]
-        // TODO: Discard (official video) and such
-        // TODO: Discard {Genre}
-        const re = new RegExp(`(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$`);
-        let result = re.exec(videoTitle);
+    // Get artist and title using RegEx on video title
+    // TODO: Fix discarding of [.*]
+    // TODO: Discard (official video) and such
+    // TODO: Discard {Genre}
+    const re = new RegExp(`(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$`);
+    let result = re.exec(videoTitle);
 
-        if (result[2]) {
-            tags.artist = result[1].trim();
-            tags.title = result[2].trim();
-        } else {
-            // Fallback for when video title does not match RegEx
-            tags.title = videoTitle;
+    if (result[2]) {
+        tags.artist = result[1].trim();
+        tags.title = result[2].trim();
+    } else {
+        // Fallback for when video title does not match RegEx
+        tags.title = videoTitle;
+    }
+
+    // Set genre if channel appears in config file
+    const channel = await youtube.getChannelTitle(track);
+    for (let ch in config.Channels) {
+        if (channel === ch && config.Channels.hasOwnProperty(ch)) {
+            tags.genre = config.Channels[ch];
         }
-
-        // Set genre if channel appears in config file
-        youtube.getChannelTitle(track)
-            .then(channel => {
-                for (let ch in config.Channels) {
-                    if (config.Channels.hasOwnProperty(ch) && channel === ch) {
-                        tags.genre = config.Channels[ch];
-                    }
-                }
-                resolve(tags);
-            }, reject);
-    });
+    }
+    return tags;
 }
 
-function repeat() {
-    transferPlaylist(spListId, ytListId)
-        .then(() => {
-            return downloadPlaylist(ytListId);
-        }, console.error)
-        .catch(console.error);
+async function repeat() {
+    try {
+        await transferPlaylist(spListId, ytListId);
+        await downloadPlaylist(ytListId);
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 // Load config file
