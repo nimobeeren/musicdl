@@ -21,7 +21,7 @@ let queue = [];
  * @param spListId Spotify playlist ID
  * @param ytListId YouTube playlist ID
  */
-function transferPlaylist(spListId, ytListId) {
+async function transferPlaylist(spListId, ytListId) {
     // TODO: Check for this only on startup
     // TODO: Log to console when services are indeed ready
     if (!spotify.ready && !youtube.ready) {
@@ -34,68 +34,51 @@ function transferPlaylist(spListId, ytListId) {
         throw new Error("YouTube service not ready");
     }
 
-    return spotify.list(spUsername, spListId)
-        .then(tracks => {
-            // Find tracks on YouTube and move them to the YouTube playlist sequentially
-            return new Promise(resolve => {
-                let recurse = (i = 0) => {
-                    if (i >= tracks.length) {
-                        resolve(i);
-                        return;
-                    }
+    // Get tracks from the Spotify playlist
+    const tracks = await spotify.list(spUsername, spListId);
 
-                    // Make sure we don't transfer duplicates
-                    if (tracks.find(t => t.uri === tracks[i].uri) !== tracks[i]) {
-                        // If the same track appears somewhere before this one in the playlist, remove it
-                        spotify.remove(spUsername, spListId, [tracks[i]])
-                            .then(() => {
-                                recurse(++i);
-                            }, err => {
-                                throw err;
-                            });
-                        return;
-                    }
+    // Find tracks on YouTube and move them to the YouTube playlist sequentially
+    for (let i = 0; i < tracks.length; i++) {
+        // Make sure we don't transfer duplicates
+        const duplicate = tracks.find(t => t.uri === tracks[i].uri) !== tracks[i];
+        if (duplicate) {
+            // If the same track appears somewhere before this one in the playlist, remove it
+            await spotify.remove(spUsername, spListId, [tracks[i]]);
+            continue;
+        }
 
-                    // If this track is already being transferred, don't add it again
-                    if (queue.some(t => t.spId === tracks[i].uri)) {
-                        return;
-                    }
+        // If this track is already being transferred, don't add it again
+        const existsInQueue = queue.some(t => t.spId === tracks[i].uri);
+        if (existsInQueue) {
+            continue;
+        }
 
-                    let trackInfo = {
-                        spId: tracks[i].uri,
-                        state: 'move',
-                        added: Date.now(),
-                        title: tracks[i].name,
-                        artist: tracks[i].artists[0].name
-                    };
-                    queue.push(trackInfo);
+        // Create an object containing some metadata of the track and add it to the queue
+        let trackInfo = {
+            spId: tracks[i].uri,
+            state: 'move',
+            added: Date.now(),
+            title: tracks[i].name,
+            artist: tracks[i].artists[0].name
+        };
+        queue.push(trackInfo);
 
-                    youtube.search(trackInfo.artist + ' - ' + trackInfo.title)
-                        .then(result => {
-                            console.log("Transferring", trackInfo.artist + ' - ' + trackInfo.title);
-                            trackInfo.ytId = result.items[0].id.videoId;
-                            return youtube.add(trackInfo.ytId, ytListId);
-                        }, err => {
-                            throw err;
-                        })
-                        .then(() => {
-                            return spotify.remove(spUsername, spListId, [tracks[i]]);
-                        }, err => {
-                            throw err;
-                        })
-                        .then(() => {
-                            // TODO: Start downloading right away
-                            trackInfo.state = null;
-                            recurse(++i);
-                        }, err => {
-                            throw err;
-                        });
-                };
-                recurse();
-            });
-        }, err => {
-            throw err;
-        });
+        // Search for the track on YouTube
+        const ytResult = await youtube.search(trackInfo.artist + ' - ' + trackInfo.title);
+
+        // Add the search result to the YouTube playlist
+        console.log("Transferring", trackInfo.artist + ' - ' + trackInfo.title);
+        trackInfo.ytId = ytResult.items[0].id.videoId;
+        await youtube.add(trackInfo.ytId, ytListId);
+
+        // Remove the track from the Spotify playlist
+        await spotify.remove(spUsername, spListId, tracks);
+
+        // Indicate that transferring is done
+        trackInfo.state = null;
+
+        // TODO: Start downloading this track right away
+    }
 }
 
 /**
@@ -250,7 +233,8 @@ function downloadVideo(track, outfile) {
                 const downloader = ytdl(id, {format: format});
 
                 // Write downloaded video to disk
-                // TODO: Probably throws error when file is being written twice at the same time (avoidable by not downloading twice)
+                // TODO: Probably throws error when file is being written twice at the same time
+                // (avoidable by not downloading twice)
                 downloader.pipe(fs.createWriteStream(outfile));
 
                 // TODO: Communicate progress to web interface
@@ -357,4 +341,3 @@ console.log("Read config file");
 
 // Check playlists repeatedly
 setInterval(repeat, interval); // TODO: caching/ETags
-
