@@ -273,10 +273,9 @@ async function getTags(track) {
     let tags = {};
 
     // Get artist and title using RegEx on video title
-    // TODO: Fix discarding of [.*]
     // TODO: Discard (official video) and such
     // TODO: Discard {Genre}
-    const re = new RegExp(`(.*?)(?:\s*-\s*)(.*?)(?:\s*\[.*\])?$`);
+    const re = /(.*?)\s*-\s*(.*?)(?:\s*\[.*\])?$/;
     let result = re.exec(videoTitle);
 
     if (result[2]) {
