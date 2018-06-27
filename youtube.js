@@ -2,22 +2,32 @@
 
 const fs = require('fs');
 const google = require('googleapis');
-const key = require('./credentials/youtubeKey.json');
-const token = require('./credentials/youtubeToken.json');
+// TODO: Handle missing files
+let key = require('./credentials/youtubeKey.json');
+let token = require('./credentials/youtubeToken.json');
 
-let youtube = google.youtube('v3'),
+const youtube = google.youtube('v3'),
     OAuth2 = google.auth.OAuth2,
     scope = 'https://www.googleapis.com/auth/youtube',
-    clientId = key.web.client_id,
-    clientSecret = key.web.client_secret,
     redirectUri = 'http://localhost:8000/yt-auth';
 
-let oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
+// Get client ID and secret from file
+let clientId, clientSecret;
+if (key.web) {
+    key = key.web;
+}
+if (key.client_id && key.client_secret) {
+    clientId = key.client_id;
+    clientSecret = key.client_secret;
+} else {
+    console.error("No usable YouTube key found. Please download your API key from the Google API Console.");
+}
 
+// Set up OAuth2 client
+let oauth2Client = new OAuth2(clientId, clientSecret, redirectUri);
 google.options({
     auth: oauth2Client
 });
-
 let authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline', // 'online' (default) or 'offline' (gets refresh_token)
     scope: scope,
@@ -119,11 +129,11 @@ module.exports = {
     }
 };
 
-// Retrieves tokens from local storage and uses them
+// Retrieve token from file and use it
 if (token['access_token'] || token['refresh_token']) {
     oauth2Client.setCredentials(token);
-    console.log("Retrieved YouTube tokens from local storage");
+    console.log("Retrieved YouTube token from local storage");
     module.exports.ready = true;
 } else {
-    console.log("YouTube token is in an unknown format or damaged");
+    console.error("No usable YouTube token found. Please authorize the app.");
 }

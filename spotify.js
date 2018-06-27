@@ -1,21 +1,28 @@
 const fs = require('fs');
 const SpotifyWebApi = require('spotify-web-api-node');
-// TODO: Handle missing token files
+// TODO: Handle missing files
 const key = require('./credentials/spotifyKey.json');
 const token = require('./credentials/spotifyToken.json');
 
 let scopes = ['playlist-modify-private'],
-    clientId = key.client_id,
-    clientSecret = key.client_secret,
     redirectUri = 'http://localhost:8000/sp-auth',
     state = 'authorizing';
 
+// Get client ID and secret from file
+let clientId, clientSecret;
+if (key.client_id && key.client_secret) {
+    clientId = key.client_id;
+    clientSecret = key.client_secret;
+} else {
+    console.error("No usable Spotify key found. Please get your API credentials from Spotify for Developers.");
+}
+
+// Set up API client
 let spotify = new SpotifyWebApi({
     clientId: clientId,
     clientSecret: clientSecret,
     redirectUri: redirectUri
 });
-
 let authUrl = spotify.createAuthorizeURL(scopes, state);
 
 module.exports = {
@@ -23,7 +30,7 @@ module.exports = {
     ready: false,
 
     /**
-     * Authorizes the app
+     * Authorizes the app.
      * @param code Authorization code from Spotify
      */
     authorize: code => {
@@ -53,7 +60,7 @@ module.exports = {
     },
 
     /**
-     * Gets an array of tracks from the specified playlist
+     * Gets an array of tracks from the specified playlist.
      */
     list: (username, listId) => {
         // TODO: Handle 429 too many requests properly
@@ -91,7 +98,7 @@ module.exports = {
     },
 
     /**
-     * Removes a set of tracks from the specified playlist
+     * Removes a set of tracks from the specified playlist.
      * @param username Spotify username
      * @param listId Spotify playlist ID
      * @param tracks
@@ -126,12 +133,12 @@ module.exports = {
     }
 };
 
-// Retrieves tokens from local storage and uses them
+// Retrieve tokens from local storage and uses them
 if (token['access_token'] || token['refresh_token']) {
     spotify.setAccessToken(token['access_token']);
     spotify.setRefreshToken(token['refresh_token']);
     module.exports.ready = true;
-    console.log("Retrieved Spotify tokens from local storage");
+    console.log("Retrieved Spotify token from local storage");
 } else {
-    console.log("Spotify token is in an unknown format or damaged");
+    console.log("No usable Spotify token found. Please authorize the app.");
 }
