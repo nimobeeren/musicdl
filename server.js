@@ -278,7 +278,7 @@ async function getTags(track) {
     const re = /(.*?)\s*-\s*(.*?)(?:\s*\[.*\])?$/;
     let result = re.exec(videoTitle);
 
-    if (result[2]) {
+    if (result && result[2]) {
         tags.artist = result[1].trim();
         tags.title = result[2].trim();
     } else {
