@@ -182,7 +182,7 @@ async function downloadPlaylist(ytListId) {
         }
 
         // Delete temporary video file
-        fs.unlink(videoFile);
+        fs.unlinkSync(videoFile);
         trackInfo.state = null;
         console.log(`Finished ${trackInfo.artist} - ${trackInfo.title}`);
     });
