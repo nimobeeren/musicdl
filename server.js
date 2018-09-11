@@ -104,7 +104,7 @@ async function downloadPlaylist(ytListId) {
         let audioFile = title + '.m4a';                      // Filename for final audio file
 
         // Replace forbidden characters in filename
-        audioFile = audioFile.replace(/[/\\%*:|"<>?]/, '_');
+        audioFile = audioFile.replace(/[/\\%*:|"<>?`]/, '_');
 
         // Make sure we don't download duplicates
         if (playlist.items.find(t => t.snippet.resourceId.videoId === id) !== track) {
