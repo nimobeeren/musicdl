@@ -1,6 +1,6 @@
 {
   "name": "musicdl",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Automatically downloads music",
   "main": "server.js",
   "scripts": {
