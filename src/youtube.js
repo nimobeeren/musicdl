@@ -3,8 +3,8 @@
 const fs = require('fs');
 const google = require('googleapis');
 // TODO: Handle missing files
-let key = require('./credentials/youtubeKey.json');
-let token = require('./credentials/youtubeToken.json');
+let key = require('../credentials/youtubeKey.json');
+let token = require('../credentials/youtubeToken.json');
 
 const youtube = google.youtube('v3'),
     OAuth2 = google.auth.OAuth2,

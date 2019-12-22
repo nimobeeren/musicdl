@@ -1,8 +1,8 @@
 const fs = require('fs');
 const SpotifyWebApi = require('spotify-web-api-node');
 // TODO: Handle missing files
-const key = require('./credentials/spotifyKey.json');
-const token = require('./credentials/spotifyToken.json');
+const key = require('../credentials/spotifyKey.json');
+const token = require('../credentials/spotifyToken.json');
 
 let scopes = ['playlist-modify-private'],
     redirectUri = 'http://localhost:8000/sp-auth',

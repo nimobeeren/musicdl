@@ -5,12 +5,12 @@
   "author": "Nimo Beeren",
   "license": "MIT",
   "scripts": {
-    "build": "parcel build -t node main.js",
+    "build": "parcel build -t node src/main.js",
     "clean": "rimraf .cache dist *.log",
-    "dev": "NODE_ENV=development parcel build -t node main.js --no-minify && concurrently yarn:watch yarn:start",
+    "dev": "NODE_ENV=development parcel build -t node src/main.js --no-minify && concurrently yarn:watch yarn:start",
     "prod": "node dist/main.js",
     "start": "node-dev dist/main.js",
-    "watch": "parcel watch -t node main.js"
+    "watch": "parcel watch -t node src/main.js"
   },
   "dependencies": {
     "express": "^4.16.3",
@@ -21,9 +21,11 @@
     "ytdl-core": "^0.25.2"
   },
   "devDependencies": {
+    "@types/node": "^12.12.21",
     "concurrently": "^5.0.2",
     "node-dev": "^4.0.0",
     "parcel-bundler": "^1.12.4",
-    "rimraf": "^3.0.0"
+    "rimraf": "^3.0.0",
+    "typescript": "^3.7.4"
   }
 }
