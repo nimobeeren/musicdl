@@ -2,12 +2,16 @@
   "name": "musicdl",
   "version": "2.0.0",
   "description": "Automatically downloads music",
-  "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "Nimo Beeren",
-  "license": "ISC",
+  "license": "MIT",
+  "scripts": {
+    "build": "parcel build -t node main.js",
+    "clean": "rimraf .cache dist *.log",
+    "dev": "NODE_ENV=development parcel build -t node main.js --no-minify && concurrently yarn:watch yarn:start",
+    "prod": "node dist/main.js",
+    "start": "node-dev dist/main.js",
+    "watch": "parcel watch -t node main.js"
+  },
   "dependencies": {
     "express": "^4.16.3",
     "googleapis": "^19.0.0",
@@ -15,5 +19,11 @@
     "shelljs": "^0.7.7",
     "spotify-web-api-node": "^3.1.1",
     "ytdl-core": "^0.25.2"
+  },
+  "devDependencies": {
+    "concurrently": "^5.0.2",
+    "node-dev": "^4.0.0",
+    "parcel-bundler": "^1.12.4",
+    "rimraf": "^3.0.0"
   }
 }

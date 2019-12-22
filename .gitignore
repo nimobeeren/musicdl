@@ -4,3 +4,10 @@ node_modules/
 # IntelliJ stuff
 .idea/
 *.iml
+
+# Build files
+.cache/
+dist/
+
+# Misc
+*.log
