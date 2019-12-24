@@ -327,7 +327,8 @@ async function repeat() {
 }
 
 // Load config file
-const config = ini.parse(fs.readFileSync("./config.ini", "utf-8"));
+const configPath = path.resolve(__dirname, "../config.ini");
+const config = ini.parse(fs.readFileSync(configPath, "utf-8"));
 interval = config["General"]["Interval"] * 1000;
 outputDir = config["General"]["OutputDir"];
 spUsername = config["General"]["SpotifyUsername"];
