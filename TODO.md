@@ -1,5 +1,6 @@
-* Authentication is cumbersome
-* Running without key files crashes without info
-* Redirect from authentication does not work when not running on localhost
-* Copying API key/secret kinda sucks
-* Error messages need a stack trace
+- Fix infinitely downloading same files even though they are finished and removed from playlist
+- Authentication is cumbersome
+- Running without key files crashes without info
+- Redirect from authentication does not work when not running on localhost
+- Copying API key/secret kinda sucks
+- Error messages need a stack trace

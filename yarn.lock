@@ -711,12 +711,12 @@ loud-rejection@^1.0.0:
     currently-unhandled "^0.4.1"
     signal-exit "^3.0.0"
 
-m3u8stream@^0.4.0:
-  version "0.4.2"
-  resolved "https://registry.yarnpkg.com/m3u8stream/-/m3u8stream-0.4.2.tgz#c93aefde522e4eaeac7e942cfab83973675a4f11"
-  integrity sha512-VZeobA83iQdd2TY12K2DNLuUmE1XNjN660SYU9s6A4kP7ZhFEp/bQPUpOWU2EbkFYwsonyaFT+RxLDr1OhPTRA==
+m3u8stream@^0.6.3:
+  version "0.6.4"
+  resolved "https://registry.yarnpkg.com/m3u8stream/-/m3u8stream-0.6.4.tgz#c2cdeb8401d340cc476029e433177caa089a26e9"
+  integrity sha512-9WLF1VAtbVij03HWJKbVZ8L0orsoZiP53UljR5EwaDrozQFMsTGRDPe3PbzWV73He8a+j5H/hWZNoI2VkUSsiw==
   dependencies:
-    miniget "^1.4.0"
+    miniget "^1.6.1"
     sax "^1.2.4"
 
 map-obj@^1.0.0, map-obj@^1.0.1:
@@ -772,7 +772,7 @@ mime@1.6.0, mime@^1.3.4, mime@^1.4.1:
   resolved "https://registry.yarnpkg.com/mime/-/mime-1.6.0.tgz#32cd9e5c64553bd58d19a568af452acff04981b1"
   integrity sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==
 
-miniget@^1.4.0:
+miniget@^1.6.0, miniget@^1.6.1:
   version "1.6.1"
   resolved "https://registry.yarnpkg.com/miniget/-/miniget-1.6.1.tgz#f1ae08a34e06a2b1c3ace568384ea0def2fe5813"
   integrity sha512-I5oBwZmcaOuJrjQn7lpS29HM+aAZDbzKbX5ouxVyhFYdg6fA6YKOTwOCgzZQwlHuMek3FlCxz6eNrd4pOXbwOA==
@@ -1361,12 +1361,12 @@ xtend@^4.0.0:
   resolved "https://registry.yarnpkg.com/xtend/-/xtend-4.0.2.tgz#bb72779f5fa465186b1f438f674fa347fdb5db54"
   integrity sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==
 
-ytdl-core@^0.25.2:
-  version "0.25.2"
-  resolved "https://registry.yarnpkg.com/ytdl-core/-/ytdl-core-0.25.2.tgz#755f4ee003f02e5590e492f3b816c1adef976061"
-  integrity sha512-/iBcw6SQ2jH3jyCdMy8lhRGo9ZY7ufhgVv9DEO1Zyvw6wadWolrcEc0qJ54k0Yin1IehU8NjL2Psnx9e6/F/zA==
+ytdl-core@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/ytdl-core/-/ytdl-core-1.0.6.tgz#ced230fcfc506d50203affa15ea53a7c438bebda"
+  integrity sha512-6+g8ZRxO4V7U4U8HiE3R2Or7MSOl5g8BIZ4Z6Wa/cGsNyqu5IStMJiR3I+HfI+4jGtSaHzAM2SrkVtIrjGcBNA==
   dependencies:
     html-entities "^1.1.3"
-    m3u8stream "^0.4.0"
-    miniget "^1.4.0"
+    m3u8stream "^0.6.3"
+    miniget "^1.6.0"
     sax "^1.1.3"
