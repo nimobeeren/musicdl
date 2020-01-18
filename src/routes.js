@@ -2,7 +2,7 @@ const app = require("express")();
 const spotify = require("./spotify");
 const youtube = require("./youtube");
 
-const port = 8000;
+const port = process.env.PORT || 8000;
 
 app.listen(port, () => {
   console.log("Server listening on port: " + port);
