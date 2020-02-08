@@ -6,10 +6,12 @@ const google = require("googleapis");
 let key = require("../credentials/youtubeKey.json");
 let token = require("../credentials/youtubeToken.json");
 
+const port = process.env.PORT || 8000;
+
 const youtube = google.youtube("v3"),
   OAuth2 = google.auth.OAuth2,
   scope = "https://www.googleapis.com/auth/youtube",
-  redirectUri = "http://localhost:8000/yt-auth";
+  redirectUri = `http://localhost:${port}/yt-auth`;
 
 // Get client ID and secret from file
 let clientId, clientSecret;

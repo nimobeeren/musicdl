@@ -4,8 +4,10 @@ const SpotifyWebApi = require("spotify-web-api-node");
 const key = require("../credentials/spotifyKey.json");
 const token = require("../credentials/spotifyToken.json");
 
+const port = process.env.PORT || 8000;
+
 let scopes = ["playlist-modify-private"],
-  redirectUri = "http://localhost:8000/sp-auth",
+  redirectUri = `http://localhost:${port}/sp-auth`,
   state = "authorizing";
 
 // Get client ID and secret from file
